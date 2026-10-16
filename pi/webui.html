@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14">
+<title>Protogen</title>
+<style>
+:root{--bg:#0d0f14;--card:#171a22;--card2:#1f2330;--line:#2a2f3d;--text:#eef0f5;--dim:#9299ab;
+  --accent:#ff3d3d;--ok:#37d67a;--warn:#ffb020;--bad:#ff5a5a;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+button,input,select{font:inherit;color:inherit}
+h2{font-size:1em;margin:0 0 10px;letter-spacing:.2px}
+.wrap{max-width:760px;margin:0 auto;padding:0 12px}
+
+/* top: name, link, language */
+header{display:flex;align-items:center;gap:10px;padding:10px 0 6px}
+header .name{font-weight:700;font-size:1.1em;flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bad);box-shadow:0 0 8px currentColor}
+.dot.on{background:var(--ok)}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:.85em;color:var(--dim)}
+button.chip{cursor:pointer;color:var(--text)}
+
+/* the face, live */
+#stage{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 82%,transparent);padding:4px 0 10px}
+.screen{position:relative;background:#000;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+  box-shadow:0 0 28px -8px var(--accent)}
+.screen canvas{display:block;width:100%;image-rendering:pixelated;aspect-ratio:4/1}
+.screen .grid{position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,transparent 52%,rgba(0,0,0,.82) 62%);background-size:calc(100%/128) calc(100%/32)}
+.screen .wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:.9em}
+.statusrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.statusrow .grow{flex:1}
+
+/* tabs */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(18,20,27,.96);backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav .in{max-width:760px;margin:0 auto;display:flex}
+nav button{flex:1;background:none;border:0;padding:8px 2px 9px;color:var(--dim);cursor:pointer;font-size:.72em;min-width:0}
+nav button .i{display:block;font-size:1.65em;line-height:1.15}
+nav button.on{color:var(--text)}
+nav button.on .i{filter:drop-shadow(0 0 6px var(--accent))}
+.tab{display:none}.tab.on{display:block}
+
+/* cards and controls */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 12px}
+.row{display:flex;align-items:center;gap:10px;margin:10px 0}
+.row>label,.row>.lab{flex:0 0 38%;color:var(--dim)}
+.row>.ctl{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.btn{color:var(--text);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn[disabled]{opacity:.45}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.seg{display:flex;background:var(--card2);border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{flex:1;border:0;background:none;border-radius:8px;padding:8px 6px;cursor:pointer;color:var(--dim);white-space:nowrap}
+.seg button.on{background:var(--accent);color:#fff;font-weight:600}
+input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:28px}
+input[type=text],select{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;flex:1}
+input[type=color]{width:46px;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--card2);padding:3px}
+.val{min-width:4.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+.sw{flex:none;width:50px;height:30px;border-radius:999px;background:var(--card2);border:1px solid var(--line);position:relative;cursor:pointer;transition:.15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--dim);transition:.15s}
+.sw.on{background:var(--accent);border-color:transparent}.sw.on::after{left:23px;background:#fff}
+
+/* emotions */
+.emos{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.emo{background:var(--card2);border:2px solid transparent;border-radius:12px;padding:10px 4px 8px;cursor:pointer;text-align:center}
+.emo .e{font-size:1.9em;line-height:1.1;display:block}
+.emo .n{font-size:.78em;color:var(--dim);display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emo.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--card2))}
+.emo.shown{box-shadow:inset 0 0 0 1px var(--warn)}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
+.quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.q{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:12px;padding:9px 10px}
+.q .t{flex:1;font-size:.9em;cursor:pointer}
+.q .t::after{content:" ⓘ";color:var(--dim);font-size:.85em}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.modes button{background:var(--card2);border:2px solid transparent;border-radius:12px;padding:9px 2px;cursor:pointer;font-size:.78em;color:var(--dim)}
+.modes button .i{display:block;font-size:1.7em}
+.modes button.on{border-color:var(--accent);color:var(--text)}
+
+/* settings */
+.search{display:flex;gap:8px;margin-bottom:10px}
+.group>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+.group>summary::-webkit-details-marker{display:none}
+.group>summary .gi{font-size:1.5em}
+.group>summary .gt{flex:1}
+.group>summary .gt small{display:block;color:var(--dim);font-weight:400}
+.group>summary::after{content:"▾";color:var(--dim)}
+.group[open]>summary::after{content:"▴"}
+.set{border-top:1px solid var(--line);padding:11px 0 9px}
+.set .top{display:flex;align-items:center;gap:10px}
+.set .nm{flex:1;cursor:pointer}
+.set .nm::after{content:" ⓘ";color:var(--dim);font-size:.85em}
+.set.mod .nm::before{content:"● ";color:var(--warn);font-size:.7em;vertical-align:middle}
+.set .sl{display:flex;align-items:center;gap:8px;margin-top:4px}
+.set .step{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card2);cursor:pointer;flex:none}
+.set .help{display:none;margin-top:8px;padding:10px 12px;background:var(--card2);border-radius:10px;color:#cfd4e2;font-size:.92em}
+.set.open .help{display:block}
+.set .help .def{display:flex;gap:10px;align-items:center;margin-top:8px;color:var(--dim);font-size:.9em}
+.set .help .def button{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline}
+.hint{color:var(--dim);font-size:.88em}
+pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:10px;font-size:.85em;margin:8px 0 0;max-height:180px;overflow:auto}
+.rings{display:flex;justify-content:center;gap:26px}
+.rings canvas{width:110px;height:110px}
+
+/* messages */
+#toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;
+  background:#000;border:1px solid var(--line);border-radius:12px;padding:10px 16px;opacity:0;pointer-events:none;transition:.2s;max-width:90%}
+#toast.on{opacity:1}
+#offline{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--bad);color:#fff;text-align:center;padding:7px;display:none;font-weight:600}
+#offline.on{display:block}
+#sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
+#sheet.on{display:flex}
+#sheet .box{background:var(--card);border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-width:760px;width:100%}
+#sheet h3{margin:0 0 8px}
+#sheet p{margin:0 0 14px;color:#cfd4e2}
+</style>
+</head>
+<body>
+<div id="offline" data-t="offline"></div>
+<div class="wrap">
+  <header>
+    <span class="dot" id="link" title=""></span>
+    <span class="name">Protogen</span>
+    <span class="chip" id="simBadge" style="display:none" data-t="simulator"></span>
+    <button class="chip" id="lang">RU</button>
+  </header>
+
+  <section id="stage">
+    <div class="screen">
+      <canvas id="face" width="128" height="32"></canvas>
+      <div class="grid" id="grid"></div>
+      <div class="wait" id="wait" data-t="waiting"></div>
+    </div>
+    <div class="statusrow">
+      <span class="chip" id="stShown"></span>
+      <span class="chip" id="stState"></span>
+      <span class="chip" id="stEsp"></span>
+      <span class="grow"></span>
+      <span class="chip">☀ <span id="brV">–</span></span>
+    </div>
+    <div class="row" style="margin:6px 0 0"><input type="range" id="bright" min="5" max="100" step="1" aria-label="brightness"></div>
+  </section>
+
+  <!-- Face -->
+  <div class="tab on" id="tab-face">
+    <div class="card">
+      <h2 data-t="emotions"></h2>
+      <div class="emos" id="emos"></div>
+      <div class="btns" style="margin-top:12px;flex-wrap:nowrap">
+        <button class="btn" id="winkL" style="flex:1">😉 <span data-t="winkLeft"></span></button>
+        <button class="btn" id="winkR" style="flex:1"><span data-t="winkRight"></span> 😉</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 data-t="quick"></h2>
+      <div class="quick" id="quick"></div>
+      <div class="row"><span class="lab" data-t="liveliness"></span>
+        <div class="ctl"><input type="range" id="qLive" min="0" max="2" step="0.1"><span class="val" id="qLiveV"></span></div></div>
+    </div>
+  </div>
+
+  <!-- Look -->
+  <div class="tab" id="tab-look">
+    <div class="card">
+      <h2 data-t="colourMode"></h2>
+      <div class="seg" id="effects"></div>
+      <p class="hint" id="effectHint"></p>
+    </div>
+    <div class="card" id="cardColour">
+      <h2 data-t="colour"></h2>
+      <div class="row"><div class="ctl"><input type="color" id="color"><div class="swatches" id="swatches"></div></div></div>
+      <p class="hint" data-t="colourHint"></p>
+    </div>
+    <div class="card" id="cardGrad">
+      <h2 data-t="gradient"></h2>
+      <div class="row"><span class="lab" data-t="gradColours"></span><div class="ctl"><input type="color" id="g1"><input type="color" id="g2"></div></div>
+      <div class="row"><span class="lab" data-t="gradAngle"></span><div class="ctl"><input type="range" id="gAngle" min="0" max="360" step="5"><span class="val" id="gAngleV"></span></div></div>
+    </div>
+    <div class="card">
+      <h2 data-t="panels"></h2>
+      <div class="row"><span class="lab" data-t="mirror"></span><div class="ctl"><div class="sw" id="mirror"></div><span class="hint" data-t="mirrorHint"></span></div></div>
+      <div class="row"><span class="lab" data-t="rotate"></span><div class="ctl"><div class="sw" id="rotate"></div><span class="hint" data-t="rotateHint"></span></div></div>
+    </div>
+  </div>
+
+  <!-- Show (modes) -->
+  <div class="tab" id="tab-show">
+    <div class="card">
+      <h2 data-t="whatToShow"></h2>
+      <div class="modes" id="modes"></div>
+    </div>
+    <div class="card" data-mode="image">
+      <h2 data-t="picture"></h2>
+      <div class="btns"><label class="btn pri"><span data-t="choosePicture"></span><input type="file" id="file" accept="image/*" hidden></label></div>
+      <p class="hint" id="upMsg" data-t="pictureHint"></p>
+    </div>
+    <div class="card" data-mode="text">
+      <h2 data-t="text"></h2>
+      <div class="row"><div class="ctl"><input type="text" id="txt" maxlength="200"><input type="color" id="txtColor"></div></div>
+      <div id="textSets"></div>
+    </div>
+    <div class="card" data-mode="eq">
+      <h2 data-t="equaliser"></h2>
+      <div class="seg" id="eqKind"></div>
+      <p class="hint" data-t="eqHint"></p>
+    </div>
+    <div class="card" data-mode="music">
+      <h2 data-t="music"></h2>
+      <div class="seg" id="musKind"></div>
+      <p class="hint" data-t="musicHint"></p>
+    </div>
+    <div class="card" data-mode="dino">
+      <h2 data-t="game"></h2>
+      <div class="btns"><button class="btn pri" id="jump" style="flex:1;padding:18px;font-size:1.2em" data-t="jump"></button></div>
+      <p class="hint"><span data-t="score"></span>: <b id="score">0</b> · <span data-t="best"></span>: <b id="best">0</b></p>
+    </div>
+  </div>
+
+  <!-- Ears -->
+  <div class="tab" id="tab-ears">
+    <div class="card">
+      <h2 data-t="ears"></h2>
+      <div class="rings"><canvas id="earL" width="220" height="220"></canvas><canvas id="earR" width="220" height="220"></canvas></div>
+      <div class="seg" id="earFx" style="margin-top:12px"></div>
+      <p class="hint" id="earHint"></p>
+      <div class="row"><span class="lab" data-t="colour"></span><div class="ctl"><input type="color" id="earColor"></div></div>
+      <div class="row"><span class="lab" data-t="brightness"></span><div class="ctl"><input type="range" id="earBr" min="0" max="1" step="0.05"><span class="val" id="earBrV"></span></div></div>
+      <div class="btns"><button class="btn" id="earTest" data-t="earTest"></button></div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="tab" id="tab-settings">
+    <div class="search">
+      <input type="text" id="find" data-tp="search">
+      <button class="chip" id="allBtn"></button>
+    </div>
+    <p class="hint" data-t="settingsHint" style="margin:0 2px 10px"></p>
+    <div id="groups"></div>
+    <div class="btns" style="margin:4px 0 14px"><button class="btn danger" id="resetAll" data-t="resetAll"></button></div>
+  </div>
+
+  <!-- System -->
+  <div class="tab" id="tab-system">
+    <div class="card">
+      <h2 data-t="device"></h2>
+      <div id="devInfo" class="hint"></div>
+      <pre class="log" id="errors" style="display:none"></pre>
+    </div>
+    <div class="card">
+      <h2 data-t="mic"></h2>
+      <p class="hint" data-t="micHint"></p>
+      <div class="row"><span class="lab" data-t="micMargin"></span><div class="ctl"><input type="range" id="mM" min="0" max="20" step="1"><span class="val" id="mMV"></span></div></div>
+      <div class="row"><span class="lab" data-t="micGain"></span><div class="ctl"><input type="range" id="mG" min="1" max="50" step="1"><span class="val" id="mGV"></span></div></div>
+      <div class="row"><span class="lab" data-t="micAmp"></span><div class="ctl"><input type="range" id="mA" min="1" max="30" step="1"><span class="val" id="mAV"></span></div></div>
+      <div class="row"><span class="lab" data-t="micSmooth"></span><div class="ctl"><input type="range" id="mS" min="0" max="95" step="5"><span class="val" id="mSV"></span></div></div>
+      <div class="btns"><button class="btn" id="micCal" data-t="micCal"></button></div>
+    </div>
+    <div class="card">
+      <h2 data-t="myEmotions"></h2>
+      <p class="hint" data-t="myEmotionsHint"></p>
+      <div class="row"><span class="lab" data-t="ceName"></span><div class="ctl"><input type="text" id="ceLabel" maxlength="24"><input type="text" id="ceEmoji" maxlength="4" value="⭐" style="flex:0 0 4em;text-align:center"></div></div>
+      <div class="row"><span class="lab" data-t="ceEye"></span><div class="ctl"><input type="file" id="ceEye" accept="image/*"></div></div>
+      <div class="row"><span class="lab" data-t="ceMouthC"></span><div class="ctl"><input type="file" id="ceMouthC" accept="image/*"></div></div>
+      <div class="row"><span class="lab" data-t="ceMouthO"></span><div class="ctl"><input type="file" id="ceMouthO" accept="image/*"></div></div>
+      <div class="row"><span class="lab" data-t="ceBlink"></span><div class="ctl"><input type="file" id="ceBlink" accept="image/*"></div></div>
+      <div class="btns"><button class="btn pri" id="ceAdd" data-t="add"></button></div>
+      <div id="ceList" style="margin-top:8px"></div>
+    </div>
+    <div class="card" id="cardWifi">
+      <h2>Wi-Fi</h2>
+      <div class="hint" id="wfState"></div>
+      <div class="row"><span class="lab" data-t="wfNet"></span><div class="ctl">
+        <input type="text" id="wfSsid" list="wfList" maxlength="32" autocomplete="off" autocapitalize="off"><datalist id="wfList"></datalist>
+        <button class="btn" id="wfScan" title="">🔍</button></div></div>
+      <div class="row"><span class="lab" data-t="wfPass"></span><div class="ctl">
+        <input type="password" id="wfPw" maxlength="64" autocomplete="off" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0">
+        <button class="btn" id="wfShow">👁</button></div></div>
+      <div class="btns"><button class="btn pri" id="wfGo" data-t="wfConnect"></button></div>
+      <p class="hint" data-t="wfHint"></p>
+    </div>
+    <div class="card">
+      <h2 data-t="update"></h2>
+      <div class="hint" id="ver"></div>
+      <div class="btns" style="margin-top:10px">
+        <button class="btn" id="updCheck" data-t="updCheck"></button>
+        <button class="btn pri" id="updApply" style="display:none" data-t="updInstall"></button>
+        <button class="btn danger" id="updForce" style="display:none" data-t="updForce"></button>
+      </div>
+      <pre class="log" id="updMsg" style="display:none"></pre>
+    </div>
+    <div class="card">
+      <h2 data-t="power"></h2>
+      <div class="btns">
+        <button class="btn" id="restart" data-t="restart"></button>
+        <button class="btn danger" id="reboot" data-t="reboot"></button>
+        <a class="btn" href="/classic" data-t="classic" style="text-decoration:none"></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simulator (only in the simulator) -->
+  <div class="tab" id="tab-sim">
+    <div class="card">
+      <h2 data-t="simSound"></h2>
+      <div class="seg" id="simSnd"></div>
+      <div class="row"><span class="lab" data-t="simLevel"></span><div class="ctl"><input type="range" id="simLevel" min="0" max="1" step="0.05"><span class="val" id="simLevelV"></span></div></div>
+    </div>
+    <div class="card">
+      <h2 data-t="simGestures"></h2>
+      <div class="btns" id="simGest"></div>
+    </div>
+    <div class="card">
+      <h2 data-t="simTime"></h2>
+      <div class="seg" id="simSpeed"></div>
+      <div class="row"><span class="lab" data-t="simPause"></span><div class="ctl"><div class="sw" id="simPause"></div></div></div>
+      <div class="row"><span class="lab" data-t="simNet"></span><div class="ctl"><div class="seg" id="simNet" style="flex:1"></div></div></div>
+      <div class="row"><span class="lab" data-t="simLink"></span><div class="ctl"><div class="sw" id="simLink"></div><span class="hint" data-t="simLinkHint"></span></div></div>
+    </div>
+  </div>
+</div>
+
+<nav><div class="in" id="nav"></div></nav>
+<div id="toast"></div>
+<div id="sheet"><div class="box"><h3 id="shT"></h3><p id="shP"></p><div class="btns" id="shB"></div></div></div>
+
+<script>
+"use strict";
+// language
+const L = {
+en:{offline:"No connection to the protogen. Trying again…",simulator:"simulator",waiting:"waiting for the picture…",
+ tabFace:"Face",tabLook:"Colour",tabShow:"Show",tabEars:"Ears",tabSettings:"Settings",tabSystem:"System",tabSim:"Simulator",
+ emotions:"Emotion",winkLeft:"Wink left",winkRight:"Wink right",quick:"Quick switches",liveliness:"Liveliness",
+ party:"Party mode",partyHelp:"Coloured bars of the music fill the background behind the face, everything flashes harder. For dance floors.",
+ colourMode:"How the face is coloured",colour:"Colour",colourHint:"Every emotion remembers its own colour.",
+ fxSolid:"One colour",fxGradient:"Gradient",fxRainbow:"Rainbow",fxAudio:"By sound",
+ fxSolidHint:"The whole face in one colour.",fxGradientHint:"A smooth change between two colours.",
+ fxRainbowHint:"Moving rainbow stripes.",fxAudioHint:"The colour follows the sound: bass is warm, treble is cold.",
+ gradient:"Gradient",gradColours:"Two colours",gradAngle:"Direction",
+ panels:"Panels",mirror:"Mirror the second panel",mirrorHint:"needed for two panels",rotate:"Upside down",rotateHint:"if the panels are mounted the other way",
+ whatToShow:"What the panels show",mEmotion:"Face",mImage:"Picture",mText:"Text",mEq:"Equaliser",mDino:"Game",mMusic:"Colour music",
+ music:"Colour music",musAuto:"All in turn",musZones:"Columns",musRings:"Rings",musPlasma:"Plasma",musFlash:"Flashes",
+ musicHint:"A light show instead of the face. It follows the microphone: play music nearby.",
+ picture:"Picture or GIF",choosePicture:"Choose a file",pictureHint:"Any picture or animated GIF. It is fitted to 64×32 automatically.",
+ uploading:"Uploading…",uploaded:"Shown on the panels",frames:"frames",
+ text:"Running text",equaliser:"Equaliser",eqBars:"Bars",eqSpec:"Spectrogram",eqHint:"Bars jump with the music; the spectrogram draws the sound as a moving picture.",
+ game:"Dino game",jump:"JUMP",score:"Score",best:"Best",
+ ears:"Ear lights",brightness:"Brightness",earTest:"Test the lights",
+ ear_off:"Off",ear_solid:"One colour",ear_rainbow:"Rainbow",ear_spectrum:"Spectrum",ear_pulse:"Pulse",ear_face:"As the face",ear_wheel:"Wheel",
+ earh_off:"The ear lights are off.",earh_solid:"All LEDs in the chosen colour.",earh_rainbow:"A rainbow runs round the ring.",
+ earh_spectrum:"The ring shows the sound, like an equaliser.",earh_pulse:"The ring breathes in the chosen colour and flashes on the beat.",
+ earh_face:"The same colour as the face.",earh_wheel:"A dot runs round the ring.",
+ search:"Find a setting…",all:"All settings",simple:"Main only",settingsHint:"Tap the name of a setting to read what it does.",
+ resetAll:"Reset all settings",resetAllQ:"Return every setting to its factory value?",default:"Factory value",reset:"reset",on:"on",off:"off",
+ nothing:"Nothing found.",keepFace:"do not change",
+ device:"Device",mic:"Microphone",micHint:"These are stored in the sensor board. With Automatic volume on you rarely need them.",
+ micMargin:"Noise cut",micGain:"Range",micAmp:"Amplification",micSmooth:"Smoothing",micCal:"Measure the room noise now",
+ micCalDone:"Keep quiet for 2 seconds: measuring the noise",
+ myEmotions:"Your own emotions",myEmotionsHint:"PNG pictures 64×32, light on dark: the eye on the left, the mouth on the right. The eye and the closed mouth are required.",
+ ceName:"Name and icon",ceEye:"Eye *",ceMouthC:"Mouth closed *",ceMouthO:"Mouth open",ceBlink:"Eye shut (a line)",add:"Add",added:"Added",remove:"Remove",
+ update:"Software update",updCheck:"Check for updates",updInstall:"Install the update",updForce:"Install and discard local changes",
+ updAsking:"Asking the server…",updNewest:"This is the newest version.",updAvail:"updates available:",
+ updQ:"Install the update? The face restarts; it takes about a minute. If the new version does not start, the old one is restored.",
+ updForceQ:"Install the update and DISCARD changes made to the program files on this device? Your settings are kept.",
+ updStarting:"Starting…",updNoAnswer:"No answer from the device for 4 minutes. Reload the page.",
+ verUnknown:"Version: unknown (installed by hand)",version:"Version",modified:"changed on this device",
+ power:"Restart",restart:"Restart the face",reboot:"Reboot the computer",classic:"Old page",
+ restartQ:"Restart the face program? The panels go dark for a few seconds.",rebootQ:"Reboot the whole computer? It takes about half a minute.",
+ yes:"Yes",cancel:"Cancel",ok:"OK",done:"Done",error:"Error",
+ espOn:"sensors connected",espOff:"sensors not connected",shown:"now",
+ stACTIVE:"awake",stIDLE:"bored",stSLEEP:"asleep",stPARTY:"party",stERROR:"no sensors",
+ errorsTitle:"Recent problems",port:"port",soundRate:"sound frames/s",uptime:"sensor board up",power_load:"power use",gain:"volume ×",
+ simSound:"Sound",sndSilence:"Silence",sndSpeech:"Speech",sndMusic:"Music",sndManual:"Constant",simLevel:"Loudness",
+ simGestures:"Gestures",gNod:"Nod",gShake:"Shake head",gPet:"Pet",gBoop:"Poke the nose",gKnock:"Two knocks",
+ simTime:"Time",simPause:"Pause",simLink:"Sensors connected",simLinkHint:"off shows the 'no sensors' screen",
+ wfNet:"Network",wfPass:"Password",wfConnect:"Connect",wfConnecting:"Connecting…",wfDone:"Connected",
+ wfHint:"The protogen needs Wi-Fi with internet only for updates. If you move it to another network, connect your phone to that network too and open this page again.",
+ wfOnline:"Connected to",wfCable:"Connected by cable",wfInternetOk:"internet works",wfSearching:"Looking for networks…",wfFound:"networks found",
+ wfUnavailable:"Wi-Fi cannot be set up from this page on this device.",
+ net_no_wifi:"Connect Wi-Fi",net_no_internet:"No access to the internet",netOnline:"Online",netNoInternet:"No internet",netNoWifi:"No Wi-Fi",simNet:"Network",
+ wf_wrong_password:"Wrong password",wf_not_found:"There is no such network nearby",wf_timeout:"The network did not answer",wf_failed:"Could not connect",
+ wf_bad_ssid:"Enter the name of the network",wf_bad_password:"The password must be 8 to 63 characters",wf_busy:"Already connecting, wait",wf_unavailable:"Wi-Fi cannot be set up on this device",wf_bad_input:"Enter the name of the network",
+ e_angry:"Angry",e_bad:"Smirk",e_happy:"Happy",e_sad:"Sad",e_scared:"Scared",e_surprised:"Surprised",e_sleepy:"Sleepy",e_love:"Love",e_evil:"Evil"},
+ru:{offline:"Нет связи с протогеном. Пробую снова…",simulator:"симулятор",waiting:"жду картинку…",
+ tabFace:"Лицо",tabLook:"Цвет",tabShow:"Показ",tabEars:"Уши",tabSettings:"Настройки",tabSystem:"Система",tabSim:"Симулятор",
+ emotions:"Эмоция",winkLeft:"Подмигнуть левым",winkRight:"Подмигнуть правым",quick:"Быстрые переключатели",liveliness:"Живость",
+ party:"Режим вечеринки",partyHelp:"Фон за лицом заполняют цветные столбики музыки, всё вспыхивает сильнее. Для танцпола.",
+ colourMode:"Как раскрашено лицо",colour:"Цвет",colourHint:"Каждая эмоция запоминает свой цвет.",
+ fxSolid:"Один цвет",fxGradient:"Градиент",fxRainbow:"Радуга",fxAudio:"По звуку",
+ fxSolidHint:"Всё лицо одним цветом.",fxGradientHint:"Плавный переход между двумя цветами.",
+ fxRainbowHint:"Бегущие радужные полосы.",fxAudioHint:"Цвет зависит от звука: бас — тёплый, высокие — холодный.",
+ gradient:"Градиент",gradColours:"Два цвета",gradAngle:"Направление",
+ panels:"Панели",mirror:"Зеркалить вторую панель",mirrorHint:"нужно для двух панелей",rotate:"Перевернуть",rotateHint:"если панели установлены вверх ногами",
+ whatToShow:"Что показывают панели",mEmotion:"Лицо",mImage:"Картинка",mText:"Текст",mEq:"Эквалайзер",mDino:"Игра",mMusic:"Цветомузыка",
+ music:"Цветомузыка",musAuto:"Все по очереди",musZones:"Столбы",musRings:"Кольца",musPlasma:"Плазма",musFlash:"Вспышки",
+ musicHint:"Световое шоу вместо лица. Слушает микрофон: включите музыку рядом.",
+ picture:"Картинка или GIF",choosePicture:"Выбрать файл",pictureHint:"Любая картинка или анимированный GIF. Подгоняется под 64×32 автоматически.",
+ uploading:"Загружаю…",uploaded:"Показано на панелях",frames:"кадров",
+ text:"Бегущая строка",equaliser:"Эквалайзер",eqBars:"Столбики",eqSpec:"Спектрограмма",eqHint:"Столбики прыгают под музыку; спектрограмма рисует звук бегущей картинкой.",
+ game:"Игра «Динозаврик»",jump:"ПРЫЖОК",score:"Счёт",best:"Рекорд",
+ ears:"Подсветка ушей",brightness:"Яркость",earTest:"Проверить подсветку",
+ ear_off:"Выкл",ear_solid:"Один цвет",ear_rainbow:"Радуга",ear_spectrum:"Спектр",ear_pulse:"Пульс",ear_face:"Как лицо",ear_wheel:"Колесо",
+ earh_off:"Подсветка ушей выключена.",earh_solid:"Все светодиоды выбранным цветом.",earh_rainbow:"Радуга бежит по кольцу.",
+ earh_spectrum:"Кольцо показывает звук, как эквалайзер.",earh_pulse:"Кольцо «дышит» выбранным цветом и вспыхивает на бит.",
+ earh_face:"Тот же цвет, что у лица.",earh_wheel:"Точка бежит по кольцу.",
+ search:"Найти настройку…",all:"Все настройки",simple:"Только основные",settingsHint:"Нажмите на название настройки, чтобы прочитать, что она делает.",
+ resetAll:"Сбросить все настройки",resetAllQ:"Вернуть все настройки к заводским значениям?",default:"Заводское значение",reset:"сбросить",on:"вкл",off:"выкл",
+ nothing:"Ничего не найдено.",keepFace:"не менять",
+ device:"Устройство",mic:"Микрофон",micHint:"Эти значения хранятся в плате датчиков. При включённой автогромкости они нужны редко.",
+ micMargin:"Отсечение шума",micGain:"Диапазон",micAmp:"Усиление",micSmooth:"Сглаживание",micCal:"Измерить шум комнаты сейчас",
+ micCalDone:"Помолчите 2 секунды: измеряю шум",
+ myEmotions:"Свои эмоции",myEmotionsHint:"Картинки PNG 64×32, светлое на тёмном: глаз слева, рот справа. Обязательны глаз и закрытый рот.",
+ ceName:"Название и значок",ceEye:"Глаз *",ceMouthC:"Рот закрыт *",ceMouthO:"Рот открыт",ceBlink:"Глаз закрыт (линия)",add:"Добавить",added:"Добавлено",remove:"Удалить",
+ update:"Обновление программы",updCheck:"Проверить обновления",updInstall:"Установить обновление",updForce:"Установить и отбросить локальные изменения",
+ updAsking:"Спрашиваю сервер…",updNewest:"Установлена самая новая версия.",updAvail:"доступно обновлений:",
+ updQ:"Установить обновление? Лицо перезапустится, это займёт около минуты. Если новая версия не запустится, вернётся старая.",
+ updForceQ:"Установить обновление и ОТБРОСИТЬ изменения, сделанные в файлах программы на этом устройстве? Ваши настройки сохранятся.",
+ updStarting:"Запускаю…",updNoAnswer:"Устройство не отвечает 4 минуты. Обновите страницу.",
+ verUnknown:"Версия: неизвестна (установлено вручную)",version:"Версия",modified:"изменено на этом устройстве",
+ power:"Перезапуск",restart:"Перезапустить лицо",reboot:"Перезагрузить компьютер",classic:"Старая страница",
+ restartQ:"Перезапустить программу лица? Панели погаснут на несколько секунд.",rebootQ:"Перезагрузить весь компьютер? Это займёт около полминуты.",
+ yes:"Да",cancel:"Отмена",ok:"Понятно",done:"Готово",error:"Ошибка",
+ espOn:"датчики на связи",espOff:"датчики не на связи",shown:"сейчас",
+ stACTIVE:"бодрствует",stIDLE:"скучает",stSLEEP:"спит",stPARTY:"вечеринка",stERROR:"нет датчиков",
+ errorsTitle:"Недавние проблемы",port:"порт",soundRate:"кадров звука/с",uptime:"плата датчиков работает",power_load:"расход мощности",gain:"громкость ×",
+ simSound:"Звук",sndSilence:"Тишина",sndSpeech:"Речь",sndMusic:"Музыка",sndManual:"Постоянный",simLevel:"Громкость",
+ simGestures:"Жесты",gNod:"Кивок",gShake:"Мотание головой",gPet:"Погладить",gBoop:"Тык в нос",gKnock:"Два стука",
+ simTime:"Время",simPause:"Пауза",simLink:"Датчики на связи",simLinkHint:"выключите, чтобы увидеть экран «нет датчиков»",
+ wfNet:"Сеть",wfPass:"Пароль",wfConnect:"Подключить",wfConnecting:"Подключаюсь…",wfDone:"Подключено",
+ wfHint:"Wi-Fi с интернетом нужен протогену только для обновлений. Если переведёте его в другую сеть, подключите к ней и телефон и откройте эту страницу заново.",
+ wfOnline:"Подключён к",wfCable:"Подключён кабелем",wfInternetOk:"интернет есть",wfSearching:"Ищу сети…",wfFound:"найдено сетей",
+ wfUnavailable:"На этом устройстве Wi-Fi нельзя настроить со страницы.",
+ net_no_wifi:"Подключите Wi-Fi",net_no_internet:"Нет доступа к интернету",netOnline:"В сети",netNoInternet:"Нет интернета",netNoWifi:"Нет Wi-Fi",simNet:"Сеть",
+ wf_wrong_password:"Неверный пароль",wf_not_found:"Такой сети рядом нет",wf_timeout:"Сеть не ответила",wf_failed:"Не удалось подключиться",
+ wf_bad_ssid:"Введите название сети",wf_bad_password:"Пароль должен быть от 8 до 63 символов",wf_busy:"Уже подключаюсь, подождите",wf_unavailable:"На этом устройстве Wi-Fi не настраивается",wf_bad_input:"Введите название сети",
+ e_angry:"Злой",e_bad:"Ухмылка",e_happy:"Радость",e_sad:"Грусть",e_scared:"Испуг",e_surprised:"Удивление",e_sleepy:"Сонный",e_love:"Любовь",e_evil:"Злодей"}
+};
+let lang = "en";
+try { lang = localStorage.getItem("pg_lang") || ((navigator.language || "en").toLowerCase().startsWith("ru") ? "ru" : "en"); } catch (e) {}
+const t = k => (L[lang] && L[lang][k]) || L.en[k] || k;
+const tr = o => (o && (o[lang] || o.en)) || "";
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// talking to the device
+let online = true;
+async function api(path, body, method) {
+  const opt = { cache: "no-store" };
+  if (body !== undefined) { opt.method = method || "POST"; opt.headers = { "Content-Type": "application/json" }; opt.body = JSON.stringify(body); }
+  else if (method) opt.method = method;
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 6000); opt.signal = ctl.signal;
+  try { const r = await fetch(path, opt); clearTimeout(timer); setOnline(true); return await r.json(); }
+  catch (e) { clearTimeout(timer); setOnline(false); throw e; }
+}
+function setOnline(v) { if (v !== online) { online = v; $("offline").classList.toggle("on", !v); } }
+function debounce(fn, ms) { let h; return (...a) => { clearTimeout(h); h = setTimeout(() => fn(...a), ms); }; }
+let toastTimer;
+function toast(msg) { const x = $("toast"); x.textContent = msg; x.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => x.classList.remove("on"), 2600); }
+function sheet(title, text, buttons) {            // [[label, class, fn], ...]
+  $("shT").textContent = title; $("shP").textContent = text; const b = $("shB"); b.innerHTML = "";
+  buttons.forEach(([label, cls, fn]) => { const x = el("button", "btn " + (cls || ""), label); x.style.flex = "1"; x.onclick = () => { $("sheet").classList.remove("on"); fn && fn(); }; b.appendChild(x); });
+  $("sheet").classList.add("on");
+}
+$("sheet").onclick = e => { if (e.target.id === "sheet") $("sheet").classList.remove("on"); };
+const info = (title, text) => sheet(title, text, [[t("ok"), "pri"]]);
+const ask = (text, fn) => sheet("", text, [[t("cancel"), ""], [t("yes"), "pri", fn]]);
+
+// a control the user is moving must not jump back when the next status arrives
+const touched = {};
+const touch = k => { touched[k] = Date.now(); };
+const quiet = k => !touched[k] || Date.now() - touched[k] > 2500;
+const hex = c => "#" + c.map(v => Math.max(0, Math.min(255, v | 0)).toString(16).padStart(2, "0")).join("");
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+
+let S = null, schema = null, settings = {}, defaults = {}, emotions = [], showAll = false, simulated = false;
+const setState = debounce(o => api("/api/set", o).catch(() => {}), 60);
+const pending = {};
+const flushSettings = debounce(() => { const o = Object.assign({}, pending); for (const k in pending) delete pending[k]; api("/api/settings", o).catch(() => {}); }, 150);
+function setSetting(key, value) { settings[key] = value; pending[key] = value; touch("s_" + key); flushSettings(); refreshSetting(key); }
+
+// tabs
+const TABS = [["face", "🙂", "tabFace"], ["look", "🎨", "tabLook"], ["show", "📺", "tabShow"], ["ears", "💡", "tabEars"],
+              ["settings", "⚙️", "tabSettings"], ["system", "🔧", "tabSystem"], ["sim", "🧪", "tabSim"]];
+let tab = "face";
+function buildNav() {
+  const nav = $("nav"); nav.innerHTML = "";
+  TABS.forEach(([id, icon, key]) => {
+    if (id === "sim" && !simulated) return;
+    const b = el("button", id === tab ? "on" : ""); b.innerHTML = '<span class="i">' + icon + "</span>"; b.appendChild(document.createTextNode(t(key)));
+    b.onclick = () => { tab = id; try { localStorage.setItem("pg_tab", id); } catch (e) {} showTab(); };
+    nav.appendChild(b);
+  });
+}
+function showTab() {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + tab));
+  buildNav(); window.scrollTo(0, 0);
+  if (tab === "ears") loadEars();
+  if (tab === "system") { loadVersion(); loadWifi(); }
+  if (tab === "sim") loadSim();
+}
+
+// texts
+function applyTexts() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(x => { x.textContent = t(x.dataset.t); });
+  document.querySelectorAll("[data-tp]").forEach(x => { x.placeholder = t(x.dataset.tp); });
+  $("lang").textContent = lang === "en" ? "RU" : "EN";
+  $("allBtn").textContent = showAll ? t("simple") : t("all");
+  buildNav(); buildStatic(); buildEmotions(); buildQuick(); buildGroups(); buildTextSets(); if (S) render(S);
+}
+$("lang").onclick = () => { lang = lang === "en" ? "ru" : "en"; try { localStorage.setItem("pg_lang", lang); } catch (e) {} applyTexts(); if (tab === "ears") loadEars(); if (tab === "sim") loadSim(); };
+
+// fixed lists
+const EFFECTS = [["solid", "fxSolid"], ["gradient", "fxGradient"], ["rainbow", "fxRainbow"], ["audio", "fxAudio"]];
+const MODES = [["emotion", "🙂", "mEmotion"], ["image", "🖼", "mImage"], ["text", "🔤", "mText"], ["eq", "📊", "mEq"], ["dino", "🦖", "mDino"], ["music", "🎶", "mMusic"]];
+const MUSIC = [["auto", "musAuto"], ["rings", "musRings"], ["zones", "musZones"], ["plasma", "musPlasma"], ["flash", "musFlash"]];
+const SWATCHES = ["#ff1e1e", "#ff7a00", "#ffd400", "#3dff5c", "#00e5ff", "#2979ff", "#b14dff", "#ff4fd8", "#ffffff"];
+function seg(box, list, current, pick) {
+  box.innerHTML = "";
+  list.forEach(([id, key]) => { const b = el("button", id === current ? "on" : "", t(key)); b.dataset.id = id; b.onclick = () => pick(id); box.appendChild(b); });
+}
+function markSeg(box, current) { box.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.id === String(current))); }
+function buildStatic() {
+  seg($("effects"), EFFECTS, S && S.effect, id => { touch("effect"); setState({ effect: id }); markSeg($("effects"), id); lookCards(id); });
+  seg($("eqKind"), [["bars", "eqBars"], ["spectrogram", "eqSpec"]], "bars", id => { touch("effect"); setState({ mode: "eq", effect: id === "spectrogram" ? "spectrogram" : "solid" }); markSeg($("eqKind"), id); });
+  seg($("musKind"), MUSIC, settings.music_style, id => { setSetting("music_style", id); touch("mode"); setState({ mode: "music" }); markModes("music"); });
+  const m = $("modes"); m.innerHTML = "";
+  MODES.forEach(([id, icon, key]) => { const b = el("button"); b.dataset.id = id; b.innerHTML = '<span class="i">' + icon + "</span>"; b.appendChild(document.createTextNode(t(key))); b.onclick = () => { touch("mode"); setState({ mode: id }); markModes(id); }; m.appendChild(b); });
+  const sw = $("swatches"); sw.innerHTML = "";
+  SWATCHES.forEach(c => { const b = el("button"); b.style.background = c; b.onclick = () => { $("color").value = c; touch("color"); setState({ color: rgb(c) }); accent(rgb(c)); }; sw.appendChild(b); });
+}
+function markModes(id) { $("modes").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.id === id)); document.querySelectorAll("[data-mode]").forEach(c => { c.style.opacity = c.dataset.mode === id ? 1 : .55; }); }
+function lookCards(effect) {
+  $("cardGrad").style.display = effect === "gradient" ? "" : "none";
+  $("cardColour").style.display = effect === "solid" ? "" : "none";
+  const k = { solid: "fxSolidHint", gradient: "fxGradientHint", rainbow: "fxRainbowHint", audio: "fxAudioHint" }[effect];
+  $("effectHint").textContent = k ? t(k) : "";
+}
+function accent(c) { const m = Math.max(c[0], c[1], c[2], 1), k = 255 / m; document.documentElement.style.setProperty("--accent", hex(c.map(v => Math.round(v * k * .85 + 20)))); }
+
+// emotions
+const emoName = e => (!e.custom && L[lang]["e_" + e.id]) || e.label || e.id;
+async function loadEmotions() { try { emotions = await api("/api/emotions"); } catch (e) {} buildEmotions(); buildGroups(); buildCustomList(); }
+function buildEmotions() {
+  const box = $("emos"); box.innerHTML = "";
+  emotions.forEach(e => {
+    const b = el("button", "emo"); b.dataset.id = e.id;
+    b.appendChild(el("span", "e", e.emoji)); b.appendChild(el("span", "n", emoName(e)));
+    b.onclick = () => { touch("emotion"); markEmotion(e.id); setState({ emotion: e.id, mode: "emotion" }); };
+    box.appendChild(b);
+  });
+  if (S) markEmotion(S.emotion, S.emotion_shown);
+}
+function markEmotion(id, shown) { $("emos").querySelectorAll(".emo").forEach(b => { b.classList.toggle("on", b.dataset.id === id); b.classList.toggle("shown", !!shown && shown !== id && b.dataset.id === shown); }); }
+$("winkL").onclick = () => api("/api/set", { wink_request: "left" }).catch(() => {});
+$("winkR").onclick = () => api("/api/set", { wink_request: "right" }).catch(() => {});
+
+// quick switches (they are ordinary settings)
+const QUICK = ["eye_style", "auto_emotion", "gestures_enabled", "asymmetry_enabled", "beat_enabled", "mouth_eq_enabled"];
+const findItem = key => { if (!schema) return null; for (const g of schema.groups) for (const it of g.items) if (it.key === key) return it; return null; };
+function buildQuick() {
+  const box = $("quick"); box.innerHTML = "";
+  const add = (title, help, isOn, flip) => {
+    const q = el("div", "q"), tx = el("span", "t", title), sw = el("div", "sw" + (isOn() ? " on" : ""));
+    tx.onclick = () => info(title, help); sw.onclick = () => { flip(); sw.classList.toggle("on", isOn()); };
+    q.appendChild(tx); q.appendChild(sw); box.appendChild(q); return sw;
+  };
+  QUICK.forEach(key => { const it = findItem(key); if (!it) return; const sw = add(tr(it.label), tr(it.help), () => !!+settings[key], () => setSetting(key, +settings[key] ? 0 : 1)); sw.dataset.key = key; });
+  const p = add(t("party"), t("partyHelp"), () => !!(S && S.party), () => { touch("party"); S.party = !S.party; setState({ party: S.party }); }); p.id = "partySw";
+}
+$("qLive").oninput = e => { $("qLiveV").textContent = (+e.target.value).toFixed(1) + "×"; setSetting("liveliness", +e.target.value); };
+
+// settings
+const fmt = (it, v) => {
+  if (it.kind === "toggle") return +v ? t("on") : t("off");
+  if (it.kind === "choice") return String(v);
+  const step = String(it.step), dec = step.includes(".") ? step.split(".")[1].length : 0;
+  return (+v).toFixed(dec) + (it.unit ? " " + it.unit : "");
+};
+function buildGroups() {
+  if (!schema) return;
+  const box = $("groups"), q = $("find").value.trim().toLowerCase(), open = new Set([...box.querySelectorAll("details[open]")].map(d => d.dataset.id));
+  box.innerHTML = ""; let shown = 0;
+  schema.groups.forEach(g => {
+    const items = g.items.filter(it => (showAll || !it.adv || q) && (!q || (tr(it.label) + " " + tr(it.help) + " " + it.key).toLowerCase().includes(q)));
+    if (!items.length) return;
+    shown += items.length;
+    const d = el("details", "card group"); d.dataset.id = g.id; if (q || open.has(g.id)) d.open = true;
+    const sum = el("summary"); sum.appendChild(el("span", "gi", g.icon));
+    const gt = el("span", "gt"); gt.appendChild(el("b", "", tr(g.title))); gt.appendChild(el("small", "", tr(g.about))); sum.appendChild(gt); d.appendChild(sum);
+    items.forEach(it => d.appendChild(settingRow(it)));
+    box.appendChild(d);
+  });
+  if (!shown) box.appendChild(el("p", "hint", t("nothing")));
+}
+function settingRow(it) {
+  const row = el("div", "set"); row.dataset.key = it.key;
+  const top = el("div", "top"), nm = el("span", "nm", tr(it.label)); nm.onclick = () => row.classList.toggle("open"); top.appendChild(nm); row.appendChild(top);
+  if (it.kind === "toggle") {
+    const sw = el("div", "sw"); sw.onclick = () => setSetting(it.key, +settings[it.key] ? 0 : 1); top.appendChild(sw);
+  } else if (it.kind === "choice") {
+    const sel = el("select"); sel.style.flex = "0 0 46%";
+    const opts = it.options === "@emotions" ? [["", "— " + t("keepFace")]].concat(emotions.map(e => [e.id, e.emoji + " " + emoName(e)])) : it.options.map(o => [o, o]);
+    opts.forEach(([v, label]) => { const o = el("option", "", label); o.value = v; sel.appendChild(o); });
+    sel.onchange = () => setSetting(it.key, sel.value); top.appendChild(sel);
+  } else {
+    top.appendChild(el("span", "val"));
+    const sl = el("div", "sl"), minus = el("button", "step", "−"), plus = el("button", "step", "+"), r = el("input");
+    r.type = "range"; r.min = it.min; r.max = it.max; r.step = it.step;
+    const bump = d => { const v = Math.min(it.max, Math.max(it.min, +(+settings[it.key] + d * it.step).toFixed(6))); setSetting(it.key, v); };
+    r.oninput = () => setSetting(it.key, +r.value); minus.onclick = () => bump(-1); plus.onclick = () => bump(1);
+    sl.appendChild(minus); sl.appendChild(r); sl.appendChild(plus); row.appendChild(sl);
+  }
+  const help = el("div", "help"); help.appendChild(el("div", "", tr(it.help)));
+  const def = el("div", "def"); def.appendChild(el("span", "", t("default") + ": " + fmt(it, defaults[it.key])));
+  const rb = el("button", "", t("reset")); rb.onclick = () => setSetting(it.key, defaults[it.key]); def.appendChild(rb); help.appendChild(def); row.appendChild(help);
+  paintSetting(row, it);
+  return row;
+}
+function paintSetting(row, it) {
+  const v = settings[it.key]; if (v === undefined) return;
+  row.classList.toggle("mod", String(v) !== String(defaults[it.key]) && +v !== +defaults[it.key]);
+  if (it.kind === "toggle") row.querySelector(".sw").classList.toggle("on", !!+v);
+  else if (it.kind === "choice") { const s = row.querySelector("select"); if (document.activeElement !== s) s.value = v; }
+  else { row.querySelector(".val").textContent = fmt(it, v); const r = row.querySelector("input[type=range]"); if (document.activeElement !== r) r.value = v; }
+}
+function refreshSetting(key) {
+  const it = findItem(key); if (!it) return;
+  document.querySelectorAll('.set[data-key="' + key + '"]').forEach(row => paintSetting(row, it));
+  document.querySelectorAll('.sw[data-key="' + key + '"]').forEach(sw => sw.classList.toggle("on", !!+settings[key]));
+  if (key === "liveliness" && quiet("s_liveliness")) { $("qLive").value = settings[key]; }
+  if (key === "music_style") markSeg($("musKind"), settings[key]);
+  if (key === "liveliness") $("qLiveV").textContent = (+settings[key]).toFixed(1) + "×";
+}
+$("find").oninput = debounce(buildGroups, 150);
+$("allBtn").onclick = () => { showAll = !showAll; $("allBtn").textContent = showAll ? t("simple") : t("all"); buildGroups(); };
+$("resetAll").onclick = () => ask(t("resetAllQ"), async () => { await api("/api/settings/reset", {}); settings = Object.assign({}, defaults); buildGroups(); buildQuick(); toast(t("done")); });
+function buildTextSets() {                       // the text settings, also on the Show tab
+  const box = $("textSets"); box.innerHTML = ""; ["text_speed", "text_scale", "text_effect"].forEach(k => { const it = findItem(k); if (it) box.appendChild(settingRow(it)); });
+}
+
+// show: picture, text, game
+$("file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return; const fd = new FormData(); fd.append("file", f); $("upMsg").textContent = t("uploading");
+  try { const j = await (await fetch("/api/upload", { method: "POST", body: fd })).json();
+    $("upMsg").textContent = j.ok ? t("uploaded") + (j.animated ? " · " + j.frames + " " + t("frames") : "") : t("error") + ": " + j.error; if (j.ok) markModes("image"); }
+  catch (err) { $("upMsg").textContent = t("error") + ": " + err.message; }
+  e.target.value = "";
+};
+$("txt").oninput = e => { touch("text"); setState({ text_content: e.target.value, mode: "text" }); };
+$("txtColor").oninput = e => { touch("textColor"); setState({ text_color: rgb(e.target.value) }); };
+const jump = () => api("/api/dino/jump", {}).catch(() => {});
+$("jump").addEventListener("pointerdown", e => { e.preventDefault(); jump(); });
+document.addEventListener("keydown", e => { if (e.code === "Space" && tab === "show" && S && S.mode === "dino" && e.target.tagName !== "INPUT") { e.preventDefault(); jump(); } });
+
+// look
+$("color").oninput = e => { touch("color"); setState({ color: rgb(e.target.value) }); accent(rgb(e.target.value)); };
+const sendGrad = () => { touch("grad"); setState({ gradient_colors: [rgb($("g1").value), rgb($("g2").value)], gradient_angle: +$("gAngle").value }); $("gAngleV").textContent = $("gAngle").value + "°"; };
+["g1", "g2", "gAngle"].forEach(id => { $(id).oninput = sendGrad; });
+$("mirror").onclick = () => { touch("mirror"); const v = !$("mirror").classList.contains("on"); $("mirror").classList.toggle("on", v); setState({ mirror: v }); };
+$("rotate").onclick = () => { touch("rotate"); const v = !$("rotate").classList.contains("on"); $("rotate").classList.toggle("on", v); setState({ rotate_180: v }); };
+$("bright").oninput = e => { touch("bright"); $("brV").textContent = e.target.value + "%"; setState({ brightness: +e.target.value }); };
+
+// ears
+let earState = null;
+async function loadEars() {
+  try { earState = await api("/api/ears/effect"); } catch (e) { return; }
+  seg($("earFx"), earState.available.map(n => [n, "ear_" + n]), earState.effect, async id => { earState = (await api("/api/ears/effect", { effect: id })).state; markSeg($("earFx"), id); $("earHint").textContent = t("earh_" + id); });
+  $("earHint").textContent = t("earh_" + earState.effect);
+  $("earColor").value = hex(earState.color); $("earBr").value = earState.brightness; $("earBrV").textContent = Math.round(earState.brightness * 100) + "%";
+}
+$("earColor").oninput = debounce(e => api("/api/ears/effect", { color: rgb(e.target.value) }).catch(() => {}), 80);
+$("earBr").oninput = e => { $("earBrV").textContent = Math.round(e.target.value * 100) + "%"; earBrSend(+e.target.value); };
+const earBrSend = debounce(v => api("/api/ears/effect", { brightness: v }).catch(() => {}), 80);
+$("earTest").onclick = () => api("/api/ears/test", {}).catch(() => {});
+function drawRing(cv, leds) {
+  const c = cv.getContext("2d"), n = leds.length, w = cv.width; c.clearRect(0, 0, w, w);
+  leds.forEach((col, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n, x = w / 2 + Math.cos(a) * w * .36, y = w / 2 + Math.sin(a) * w * .36;
+    c.beginPath(); c.arc(x, y, w * .075, 0, 7); c.fillStyle = "rgb(" + col.join(",") + ")"; c.shadowColor = c.fillStyle; c.shadowBlur = Math.max(...col) > 30 ? 14 : 0; c.fill();
+    c.shadowBlur = 0; c.strokeStyle = "#2a2f3d"; c.lineWidth = 2; c.stroke(); });
+}
+setInterval(async () => { if (tab !== "ears" || document.hidden || !online) return; try { const j = await api("/api/ears/preview"); drawRing($("earL"), j.left); drawRing($("earR"), j.right); } catch (e) {} }, 250);
+
+// system
+const cmd = (c, v) => api("/api/cmd", { cmd: c, value: v }).catch(() => {});
+[["mM", "M", " dB"], ["mG", "G", ""], ["mA", "A", "×"], ["mS", "S", "%"]].forEach(([id, c, unit]) => {
+  const send = debounce(v => cmd(c, v), 120);
+  $(id).oninput = e => { touch(id); $(id + "V").textContent = e.target.value + unit; send(+e.target.value); };
+});
+$("micCal").onclick = () => { cmd("C", 0); toast(t("micCalDone")); };
+$("restart").onclick = () => ask(t("restartQ"), async () => { const j = await api("/api/system/restart", {}); toast(j.ok ? t("done") : t("error") + ": " + j.error); });
+$("reboot").onclick = () => ask(t("rebootQ"), async () => { const j = await api("/api/system/reboot", {}); toast(j.ok ? t("done") : t("error") + ": " + j.error); });
+async function loadVersion() {
+  try { const v = await api("/api/system/version");
+    $("ver").textContent = v.repo ? t("version") + ": " + (v.version || v.commit) + (v.date ? " · " + v.date : "") + (v.subject ? " · " + v.subject : "") + (v.modified ? " · " + t("modified") : "")
+      : (v.release ? t("version") + ": " + v.release : t("verUnknown")); } catch (e) {}
+}
+// "no Wi-Fi" and "no internet" in the user's language, and show where to fix it
+function netError(j) {
+  if (!j.reason) return j.error;
+  loadWifi(); if (j.reason === "no_wifi") $("cardWifi").scrollIntoView({ behavior: "smooth", block: "center" });
+  return t("net_" + j.reason);
+}
+async function loadWifi() {
+  let w; try { w = await api("/api/wifi"); } catch (e) { return null; }
+  const x = $("wfState");
+  if (!w.available) x.textContent = t("wfUnavailable");
+  else if (w.state === "no_wifi") x.textContent = "⚠️ " + t("net_no_wifi");
+  else x.textContent = (w.internet ? "✓ " : "⚠️ ") + (w.link === "ethernet" ? t("wfCable") : t("wfOnline") + " «" + (w.ssid || "?") + "»") + " · " + (w.internet ? t("wfInternetOk") : t("net_no_internet"));
+  $("wfGo").disabled = !w.available || w.job.state === "connecting";
+  return w;
+}
+$("wfScan").onclick = async () => {
+  $("wfState").textContent = t("wfSearching");
+  try { const j = await api("/api/wifi/scan"); const list = $("wfList"); list.innerHTML = "";
+    j.networks.forEach(n => { const o = el("option"); o.value = n.ssid; o.label = n.signal + "%" + (n.secure ? " 🔒" : ""); list.appendChild(o); });
+    await loadWifi(); toast(t("wfFound") + ": " + j.networks.length); $("wfSsid").focus(); } catch (e) {}
+};
+$("wfShow").onclick = () => { $("wfPw").type = $("wfPw").type === "password" ? "text" : "password"; };
+$("wfGo").onclick = async () => {
+  let j; try { j = await api("/api/wifi/connect", { ssid: $("wfSsid").value.trim(), password: $("wfPw").value }); } catch (e) { return; }
+  if (!j.ok) { toast(t("wf_" + j.reason)); return; }
+  $("wfGo").disabled = true; $("wfState").textContent = "⏳ " + t("wfConnecting");
+  const t0 = Date.now();
+  const poll = async () => {
+    let w = null; try { w = await (await fetch("/api/wifi", { cache: "no-store" })).json(); } catch (e) {}
+    if (w && w.job.state !== "connecting") {
+      $("wfPw").value = ""; await loadWifi();
+      toast(w.job.state === "ok" ? t("wfDone") : t("wf_" + (w.job.reason || "failed"))); return;
+    }
+    if (Date.now() - t0 > 70000) { loadWifi(); return; }
+    setTimeout(poll, 1500);
+  };
+  setTimeout(poll, 1500);
+};
+const updMsg = m => { $("updMsg").style.display = ""; $("updMsg").textContent = m; };
+$("updCheck").onclick = async () => {
+  $("updCheck").disabled = true; updMsg(t("updAsking")); $("updApply").style.display = $("updForce").style.display = "none";
+  try { const j = await api("/api/system/update/check", {});
+    if (!j.ok) updMsg("❌ " + netError(j)); else if (!j.behind) updMsg("✓ " + t("updNewest"));
+    else { updMsg(t("updAvail") + " " + j.behind + "\n" + j.changes.map(c => "• " + c.date + "  " + c.subject).join("\n")); $("updApply").style.display = ""; if (j.modified || j.ahead) $("updForce").style.display = ""; }
+  } catch (e) { updMsg("❌ " + e.message); }
+  $("updCheck").disabled = false;
+};
+function runUpdate(force) {
+  ask(force ? t("updForceQ") : t("updQ"), async () => {
+    updMsg(t("updStarting"));
+    try { const j = await api("/api/system/update", { force }); if (!j.ok) { updMsg("❌ " + netError(j)); return; } } catch (e) { updMsg("❌ " + e.message); return; }
+    const t0 = Date.now();
+    const poll = async () => {
+      let st = null; try { st = await (await fetch("/api/system/update/status", { cache: "no-store" })).json(); } catch (e) {}
+      if (st && st.message) updMsg("⏳ " + st.message);
+      if (st && ["done", "up_to_date", "rolled_back", "error"].includes(st.state)) {
+        updMsg((st.state === "done" || st.state === "up_to_date" ? "✓ " : "❌ ") + st.message);
+        $("updApply").style.display = $("updForce").style.display = "none";
+        if (st.state === "done") setTimeout(() => location.reload(), 2500); else loadVersion(); return;
+      }
+      if (Date.now() - t0 > 240000) { updMsg("❌ " + t("updNoAnswer")); return; }
+      setTimeout(poll, 2000);
+    };
+    setTimeout(poll, 1500);
+  });
+}
+$("updApply").onclick = () => runUpdate(false); $("updForce").onclick = () => runUpdate(true);
+function buildCustomList() {
+  const box = $("ceList"); box.innerHTML = "";
+  emotions.filter(e => e.custom).forEach(e => { const r = el("div", "row"); r.appendChild(el("span", "lab", e.emoji + " " + e.label));
+    const b = el("button", "btn danger", t("remove")); b.onclick = async () => { await api("/api/emotions/custom/delete", { id: e.id }); loadEmotions(); }; r.appendChild(b); box.appendChild(r); });
+}
+$("ceAdd").onclick = async () => {
+  const fd = new FormData(); fd.append("label", $("ceLabel").value); fd.append("emoji", $("ceEmoji").value);
+  [["eye_open", "ceEye"], ["mouth_closed", "ceMouthC"], ["mouth_open", "ceMouthO"], ["eye_blink", "ceBlink"]].forEach(([k, id]) => { const f = $(id).files[0]; if (f) fd.append(k, f); });
+  try { const j = await (await fetch("/api/emotions/custom", { method: "POST", body: fd })).json();
+    toast(j.ok ? t("added") : t("error") + ": " + j.error); if (j.ok) { await loadEmotions(); setState({ emotion: j.id, mode: "emotion" }); } }
+  catch (e) { toast(t("error") + ": " + e.message); }
+};
+
+// simulator
+let sim = null;
+const simSet = async o => { try { sim = await api("/api/sim", o); paintSim(); } catch (e) {} };
+function paintSim() {
+  if (!sim) return;
+  seg($("simSnd"), [["silence", "sndSilence"], ["speech", "sndSpeech"], ["music", "sndMusic"], ["manual", "sndManual"]], sim.sound, id => simSet({ sound: id }));
+  seg($("simSpeed"), [["1", "×1"], ["0.25", "×0.25"], ["0.1", "×0.1"]].map(([v, l]) => [v, l]), String(sim.speed), id => simSet({ speed: +id }));
+  $("simSpeed").querySelectorAll("button").forEach(b => { b.textContent = "×" + b.dataset.id; });
+  if (quiet("simLevel")) $("simLevel").value = sim.level; $("simLevelV").textContent = Math.round(sim.level * 100) + "%";
+  seg($("simNet"), [["online", "netOnline"], ["no_internet", "netNoInternet"], ["no_wifi", "netNoWifi"]], sim.net, id => simSet({ net: id }).then(loadWifi));
+  $("simPause").classList.toggle("on", !!sim.paused); $("simLink").classList.toggle("on", !!sim.link);
+  const g = $("simGest"); g.innerHTML = "";
+  [["nod", "gNod"], ["shake", "gShake"], ["pet", "gPet"], ["boop", "gBoop"], ["knock", "gKnock"]].forEach(([id, key]) => { const b = el("button", "btn", t(key)); b.onclick = () => simSet({ gesture: id }); g.appendChild(b); });
+}
+const loadSim = async () => { if (!simulated) return; try { sim = await api("/api/sim"); paintSim(); } catch (e) {} };
+$("simLevel").oninput = debounce(e => { touch("simLevel"); simSet({ level: +e.target.value }); }, 80);
+$("simPause").onclick = () => simSet({ paused: !sim.paused });
+$("simLink").onclick = () => simSet({ link: !sim.link });
+
+// live picture
+const face = $("face"), fctx = face.getContext("2d"); fctx.imageSmoothingEnabled = false;
+let frameBusy = false, gotFrame = false;
+function pullFrame() {
+  if (frameBusy || document.hidden || !online) return;
+  frameBusy = true; const im = new Image();
+  im.onload = () => { frameBusy = false; if (im.width) { if (face.width !== im.width) { face.width = im.width; face.height = im.height; $("grid").style.backgroundSize = "calc(100%/" + im.width + ") calc(100%/" + im.height + ")"; face.style.aspectRatio = im.width + "/" + im.height; }
+      fctx.drawImage(im, 0, 0); if (!gotFrame) { gotFrame = true; $("wait").style.display = "none"; } } };
+  im.onerror = () => { frameBusy = false; };
+  im.src = "/api/preview.png?" + Date.now();
+}
+setInterval(pullFrame, 110);
+
+// status
+function render(s) {
+  simulated = !!s.simulated; $("simBadge").style.display = simulated ? "" : "none";
+  $("link").classList.toggle("on", !!s.connected); $("link").title = s.connected ? t("espOn") : t("espOff");
+  $("stEsp").textContent = s.connected ? "● " + t("espOn") : "○ " + t("espOff");
+  const shown = emotions.find(e => e.id === (s.emotion_shown || s.emotion));
+  $("stShown").textContent = s.mode === "emotion" ? (shown ? shown.emoji + " " + emoName(shown) : "") : t({ image: "mImage", text: "mText", eq: "mEq", dino: "mDino", music: "mMusic" }[s.mode] || "mEmotion");
+  $("stState").textContent = t("st" + (s.behavior_state || "ACTIVE"));
+  if (quiet("bright")) { $("bright").value = s.brightness; $("brV").textContent = s.brightness + "%"; }
+  if (quiet("emotion")) markEmotion(s.emotion, s.mode === "emotion" ? s.emotion_shown : null);
+  if (quiet("effect")) { markSeg($("effects"), s.effect); lookCards(s.effect); markSeg($("eqKind"), s.effect === "spectrogram" ? "spectrogram" : "bars"); }
+  if (quiet("mode")) markModes(s.mode);
+  if (quiet("color") && document.activeElement !== $("color")) { $("color").value = hex(s.color); accent(s.color); }
+  if (quiet("grad")) { const g = s.gradient_colors || [[255, 0, 0], [0, 0, 255]]; $("g1").value = hex(g[0]); $("g2").value = hex(g[1]); $("gAngle").value = s.gradient_angle || 0; $("gAngleV").textContent = (s.gradient_angle || 0) + "°"; }
+  if (quiet("mirror")) $("mirror").classList.toggle("on", !!s.mirror);
+  if (quiet("rotate")) $("rotate").classList.toggle("on", !!s.rotate_180);
+  if (quiet("text") && document.activeElement !== $("txt")) $("txt").value = s.text_content || "";
+  if (quiet("textColor")) $("txtColor").value = hex(s.text_color || [0, 220, 70]);
+  if (quiet("party") && $("partySw")) $("partySw").classList.toggle("on", !!s.party);
+  $("score").textContent = s.dino_score || 0; $("best").textContent = s.dino_high || 0;
+  [["mM", "noise_margin", " dB"], ["mG", "db_gain", ""], ["mA", "amp_mult", "×"], ["mS", "smoothing", "%"]].forEach(([id, k, u]) => { if (quiet(id) && s[k] !== undefined) { $(id).value = s[k]; $(id + "V").textContent = s[k] + u; } });
+  for (const k in s.settings) if (quiet("s_" + k) && String(settings[k]) !== String(s.settings[k])) { settings[k] = s.settings[k]; refreshSetting(k); }
+  const lines = [s.address || "", (s.port ? t("port") + ": " + s.port : t("espOff")), t("soundRate") + ": " + (s.eq_rate_hz || 0).toFixed(0),
+    t("uptime") + ": " + Math.round((s.esp_uptime_s || 0) / 60) + " min", t("gain") + (s.auto_gain_now || "–"),
+    s.power_load != null ? t("power_load") + ": " + Math.round(s.power_load * 100) + "%" : ""].filter(Boolean);
+  $("devInfo").textContent = lines.join(" · ");
+  const er = $("errors"); if (s.errors && s.errors.length) { er.style.display = ""; er.textContent = t("errorsTitle") + ":\n" + s.errors.join("\n"); } else er.style.display = "none";
+}
+async function tick() { if (document.hidden) return; try { S = await api("/api/status"); if (TABS.length && simulated !== !!S.simulated) { simulated = !!S.simulated; buildNav(); } render(S); } catch (e) {} }
+
+// start
+(async () => {
+  try { tab = localStorage.getItem("pg_tab") || "face"; } catch (e) {}
+  applyTexts();
+  try { schema = await api("/api/ui/schema"); defaults = schema.defaults; simulated = !!schema.simulated; settings = await api("/api/settings"); } catch (e) {}
+  await loadEmotions();
+  if (tab === "sim" && !simulated) tab = "face";
+  applyTexts(); showTab(); for (const k in settings) refreshSetting(k);
+  await tick(); setInterval(tick, 450);
+})();
+</script>
+</body>
+</html>

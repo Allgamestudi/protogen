@@ -1,0 +1,14 @@
+[Unit]
+Description=DS4 combo listener — launches DOOM on L1+R1+Share hold
+After=bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/wild/protogen/scripts/joystick_launcher.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

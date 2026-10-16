@@ -1,0 +1,4 @@
+pyserial>=3.5
+flask>=2.0
+pillow>=10.0
+numpy>=1.20

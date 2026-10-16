@@ -1,0 +1,48 @@
+# Сборка doomgeneric с matrix backend.
+#
+# Этот Makefile должен лежать в папке doomgeneric/doomgeneric/
+# install.sh положит его туда автоматически.
+
+CC      := gcc
+CXX     := g++
+CFLAGS  := -ggdb3 -Os -Wall -Wno-unused-but-set-variable -Wno-unused-variable \
+           -DNORMALUNIX -DLINUX
+CXXFLAGS:= $(CFLAGS) -std=c++11 \
+           -I$(HOME)/rpi-rgb-led-matrix/include
+LDFLAGS := -L$(HOME)/rpi-rgb-led-matrix/lib -lrgbmatrix \
+           -lpthread -lrt -lm -lstdc++
+
+OUTPUT  := doomgeneric_matrix
+
+# doomgeneric тащит много альтернативных backend'ов — выкидываем всё кроме
+# своего matrix (его cpp).  Также исключаем дубликат main и звуковые backend'ы
+# которые тянут SDL/allegro.
+EXCLUDE := doomgeneric_sdl.c doomgeneric_allegro.c doomgeneric_emscripten.c \
+           doomgeneric_linuxvt.c doomgeneric_soso.c doomgeneric_sosox.c \
+           doomgeneric_win.c doomgeneric_xlib.c \
+           i_main.c \
+           i_allegromusic.c i_allegrosound.c
+
+SRC_C   := $(filter-out $(EXCLUDE), $(wildcard *.c))
+OBJ_C   := $(SRC_C:.c=.o)
+OBJ_CPP := doomgeneric_matrix.o
+
+.PHONY: all clean
+
+all: $(OUTPUT)
+
+$(OUTPUT): $(OBJ_C) $(OBJ_CPP)
+	$(CXX) $(OBJ_C) $(OBJ_CPP) $(LDFLAGS) -o $@
+	@echo
+	@echo "✅ Собрано: $(OUTPUT)"
+	@echo "Запуск (от root, при остановленном протогене):"
+	@echo "    sudo ./$(OUTPUT) -iwad /usr/share/games/doom/freedoom1.wad"
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJ_C) $(OBJ_CPP) $(OUTPUT)

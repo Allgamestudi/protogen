@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protogen Control</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,system-ui,monospace;
+  background:radial-gradient(ellipse at top,#0f172a,#020617);
+  color:#e2e8f0;min-height:100vh;padding:18px}
+
+/* Loading screen */
+#splash{position:fixed;inset:0;z-index:999;
+  background:radial-gradient(ellipse at top,#0f172a,#020617);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  transition:opacity .5s ease}
+#splash.fade{opacity:0;pointer-events:none}
+.splash-face{position:relative;width:128px;height:64px}
+.splash-face canvas{width:128px;height:64px;image-rendering:pixelated}
+.splash-title{font-size:1.5em;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  background:linear-gradient(90deg,#ff6b6b,#4ecdc4,#ffe66d);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.splash-bar-wrap{width:220px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.splash-bar{height:100%;width:0%;background:linear-gradient(90deg,#4ecdc4,#ffe66d);
+  border-radius:2px;transition:width .1s linear}
+.splash-status{font-size:.72em;opacity:.5;letter-spacing:.1em}
+
+/* App shell */
+h1{font-size:1.4em;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:12px}
+h1 .title{flex:1;background:linear-gradient(90deg,#ff6b6b,#4ecdc4,#ffe66d);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.dot{width:14px;height:14px;border-radius:50%;background:#dc2626;box-shadow:0 0 8px #dc2626}
+.dot.on{background:#22c55e;box-shadow:0 0 12px #22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.container{max-width:900px;margin:0 auto}
+.section{background:rgba(30,41,59,.4);border-radius:14px;padding:14px;margin-bottom:14px}
+.section h2{font-size:.7em;text-transform:uppercase;letter-spacing:2px;opacity:.6;
+  margin-bottom:10px;font-weight:600}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode{background:rgba(255,255,255,.05);border:2px solid transparent;border-radius:12px;
+  padding:14px;cursor:pointer;font-family:inherit;color:#fff;font-weight:600;
+  text-transform:uppercase;letter-spacing:1px;font-size:.85em;text-align:center;transition:all .15s}
+.mode:hover{background:rgba(255,255,255,.1)}
+.mode.active{border-color:#4ecdc4;background:rgba(78,205,196,.18);box-shadow:0 0 20px rgba(78,205,196,.3)}
+.mode .ico{display:block;font-size:1.6em;margin-bottom:4px}
+.emos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.btn{background:rgba(255,255,255,.05);border:2px solid transparent;border-radius:10px;
+  padding:10px;cursor:pointer;font-family:inherit;color:#fff;font-size:.8em;
+  text-transform:uppercase;letter-spacing:1px;text-align:center;font-weight:600;transition:all .15s}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn.active{border-color:#4ecdc4;background:rgba(78,205,196,.18)}
+.btn.big{font-size:1.5em;text-transform:none;padding:14px}
+.btn.warn{border-color:#f97316;background:rgba(249,115,22,.18)}
+.row{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.row:last-child{margin-bottom:0}
+.row label{min-width:120px;font-size:.85em;opacity:.85}
+input[type=range]{flex:1;-webkit-appearance:none;height:6px;
+  background:rgba(255,255,255,.1);border-radius:3px;outline:none;min-width:120px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+  background:#4ecdc4;border-radius:50%;cursor:pointer;box-shadow:0 0 10px #4ecdc4}
+input[type=color]{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.val{min-width:60px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.switch{position:relative;width:44px;height:24px;background:rgba(255,255,255,.15);
+  border-radius:12px;cursor:pointer;transition:.2s}
+.switch.on{background:#4ecdc4}
+.switch::after{content:'';position:absolute;width:18px;height:18px;background:#fff;
+  border-radius:50%;top:3px;left:3px;transition:.2s}
+.switch.on::after{left:23px}
+.upload{display:block;border:2px dashed rgba(78,205,196,.4);border-radius:12px;
+  padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:rgba(78,205,196,.05)}
+.upload:hover,.upload.drag{background:rgba(78,205,196,.15);border-color:#4ecdc4}
+.upload input{position:absolute;opacity:0;width:0;height:0}
+.upload .big{font-size:2.2em;margin-bottom:6px}
+.upload .lab{font-size:.85em;opacity:.7}
+.upbtn{margin-top:10px;display:flex;gap:10px;justify-content:center}
+#preview{margin-top:12px;display:none;text-align:center}
+#preview .caption{font-size:.7em;opacity:.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+#preview img{max-width:100%;border-radius:8px;image-rendering:pixelated;
+  background:#000;padding:4px;border:1px solid rgba(255,255,255,.1)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.card{background:rgba(30,41,59,.6);border:1px solid rgba(148,163,184,.15);border-radius:12px;padding:12px}
+.card .k{font-size:.62em;text-transform:uppercase;letter-spacing:1.5px;opacity:.55;margin-bottom:5px;font-weight:600}
+.card .v{font-size:1.2em;font-weight:700;font-variant-numeric:tabular-nums}
+.card .v.s{font-size:.85em;font-family:monospace}
+#bars{display:flex;align-items:flex-end;gap:2px;height:120px;
+  background:rgba(0,0,0,.3);border-radius:8px;padding:6px}
+.bar{flex:1;background:linear-gradient(to top,#22c55e,#eab308,#dc2626);border-radius:2px;transition:height .03s}
+.hidden{display:none}
+.effects{display:flex;gap:8px;flex:1}
+.effects .btn{flex:1}
+
+/* Gradient editor */
+.grad-stop-row{display:flex;align-items:center;gap:10px;
+  padding:6px 8px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:6px}
+.swatch{width:36px;height:36px;border-radius:8px;cursor:pointer;flex-shrink:0;
+  border:2px solid rgba(255,255,255,.2);transition:border-color .15s;position:relative}
+.swatch:hover{border-color:#4ecdc4}
+.stop-label{flex:1;font-size:.8em;opacity:.65}
+.stop-rm{background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;
+  font-size:1.1em;padding:4px 8px;border-radius:6px;transition:color .15s}
+.stop-rm:hover{color:#f87171}
+#gradPreview{height:22px;border-radius:8px;margin:10px 0 4px;
+  border:1px solid rgba(255,255,255,.12);transition:background .2s}
+#gradAddBtn{width:100%;border:2px dashed rgba(78,205,196,.35);color:#4ecdc4;
+  background:rgba(78,205,196,.05);border-radius:10px;padding:8px;cursor:pointer;
+  font-family:inherit;font-size:.8em;font-weight:600;letter-spacing:1px;
+  text-transform:uppercase;transition:all .15s}
+#gradAddBtn:hover{background:rgba(78,205,196,.15);border-color:#4ecdc4}
+.solid-row{display:flex;align-items:center;gap:12px}
+.color-swatch-main{width:44px;height:38px;border-radius:8px;cursor:pointer;
+  border:2px solid rgba(255,255,255,.2);transition:border-color .15s;flex-shrink:0}
+.color-swatch-main:hover{border-color:#4ecdc4}
+
+/* Proximity emotion picker */
+.prox-emo-pick{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.prox-emo-pick .btn{padding:6px 10px;font-size:1.1em;text-transform:none;letter-spacing:0;min-width:36px}
+
+/* Settings */
+.settings-toggle{background:rgba(167,139,250,.15);border:2px solid #a78bfa;
+  border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit;
+  color:#fff;font-size:.8em;font-weight:600;text-transform:uppercase;
+  letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.settings-toggle:hover{background:rgba(167,139,250,.3)}
+.party-toggle{background:rgba(255,107,107,.12);border:2px solid #ff6b6b;
+  border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit;
+  color:#fff;font-size:.8em;font-weight:600;text-transform:uppercase;
+  letter-spacing:1px}
+.party-toggle:hover{background:rgba(255,107,107,.3)}
+.party-toggle.active{background:rgba(255,107,107,.5);box-shadow:0 0 18px rgba(255,107,107,.6);
+  animation:pulse 1s infinite}
+details.group{background:rgba(30,41,59,.6);border-radius:10px;margin-bottom:8px;overflow:hidden}
+details.group summary{padding:10px 14px;cursor:pointer;font-weight:600;font-size:.85em;
+  text-transform:uppercase;letter-spacing:1px;color:#a78bfa;
+  background:rgba(167,139,250,.07);list-style:none;display:flex;align-items:center;gap:8px}
+details.group summary::before{content:'▶';font-size:.7em;transition:.15s}
+details.group[open] summary::before{transform:rotate(90deg)}
+details.group summary::-webkit-details-marker{display:none}
+details.group > div{padding:12px 14px}
+.set-row{display:grid;grid-template-columns:1fr 2fr auto;align-items:center;gap:10px;margin-bottom:10px}
+.set-row:last-child{margin-bottom:0}
+.set-row .lbl{font-size:.78em;opacity:.85}
+.set-row .lbl small{display:block;opacity:.5;font-size:.85em;margin-top:2px;font-weight:400;text-transform:none;letter-spacing:0}
+.set-row .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;min-width:50px;font-size:.85em}
+.row-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.tag{display:inline-block;background:rgba(34,197,94,.15);color:#22c55e;
+  border-radius:8px;padding:2px 8px;font-size:.6em;font-weight:600;
+  text-transform:uppercase;letter-spacing:1px;margin-left:6px}
+.tag.save{background:rgba(167,139,250,.2);color:#a78bfa}
+</style></head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-face">
+    <canvas id="splashCanvas" width="64" height="32"></canvas>
+  </div>
+  <div class="splash-title">Protogen</div>
+  <div class="splash-bar-wrap"><div class="splash-bar" id="splashBar"></div></div>
+  <div class="splash-status" id="splashStatus">Connecting…</div>
+</div>
+
+<!-- APP -->
+<div class="container" id="appShell" style="opacity:0;transition:opacity .4s">
+  <h1>
+    <span class="dot" id="dot"></span>
+    <span class="title">Protogen Control</span>
+    <button class="party-toggle" id="partyToggle">🎉 Party</button>
+    <button class="settings-toggle" id="settingsToggle">⚙ Settings</button>
+  </h1>
+
+  <div class="section"><h2>Режим</h2>
+    <div class="modes">
+      <button class="mode" data-m="emotion"><span class="ico">😠</span>Эмоция</button>
+      <button class="mode" data-m="image"><span class="ico">🖼️</span>Картинка</button>
+      <button class="mode" data-m="text"><span class="ico">🅰️</span>Текст</button>
+      <button class="mode" data-m="eq"><span class="ico">🎵</span>Эквалайзер</button>
+      <button class="mode" data-m="dino"><span class="ico">🦖</span>Динозаврик</button>
+    </div>
+  </div>
+
+  <div id="sec-emotion" class="section">
+    <h2>😠 Эмоция</h2>
+    <div class="emos" id="emos"></div>
+    <div class="row-actions" style="margin:8px 0 0">
+      <button class="btn" id="winkL" title="Подмигнуть левым">😉 ◀</button>
+      <button class="btn" id="winkR" title="Подмигнуть правым">▶ 😉</button>
+      <span id="emoShown" style="opacity:.6;font-size:.85em;align-self:center"></span>
+    </div>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer">➕ Своя эмоция</summary>
+      <div style="font-size:.85em;opacity:.75;margin:8px 0">
+        PNG 64×32, светлое на тёмном: глаз слева, рот справа (как в assets/emotion_masks_64x32).
+        Обязательны глаз и закрытый рот; нос берётся общий.
+      </div>
+      <div class="row"><label>Название</label><input type="text" id="ceLabel" maxlength="24" placeholder="моя эмоция"></div>
+      <div class="row"><label>Значок</label><input type="text" id="ceEmoji" maxlength="4" value="⭐" style="width:4em"></div>
+      <div class="row"><label>Глаз *</label><input type="file" id="ceEye" accept="image/*"></div>
+      <div class="row"><label>Рот закрыт *</label><input type="file" id="ceMouthC" accept="image/*"></div>
+      <div class="row"><label>Рот открыт</label><input type="file" id="ceMouthO" accept="image/*"></div>
+      <div class="row"><label>Глаз закрыт (линия)</label><input type="file" id="ceBlink" accept="image/*"></div>
+      <div class="row-actions" style="margin:8px 0 0">
+        <button class="btn" id="ceAdd">Добавить</button>
+        <span id="ceMsg" style="font-size:.85em;align-self:center"></span>
+      </div>
+      <div id="ceList" style="margin-top:8px"></div>
+    </details>
+    <div class="row" style="margin-top:10px;font-size:.85em">
+      <label>Зрачок</label>
+      <div class="switch" id="pupilQuick"></div>
+      <span style="opacity:.6;font-size:.85em">глаза с веками и зрачком вместо плоских</span>
+    </div>
+    <div class="row" style="margin-top:10px;font-size:.85em">
+      <label>EQ во рту</label>
+      <div class="switch" id="mouthEqQuick"></div>
+      <span style="opacity:.6;font-size:.85em">столбики спектра внутри открытого рта</span>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <label>Effect</label>
+      <div class="effects">
+        <button class="btn" data-eff="solid">Solid</button>
+        <button class="btn" data-eff="gradient">Gradient</button>
+        <button class="btn" data-eff="rainbow">Rainbow</button>
+        <button class="btn" data-eff="audio">Audio</button>
+      </div>
+    </div>
+
+    <!-- Solid colour row -->
+    <div class="row" id="row-solid">
+      <label>Color</label>
+      <div class="solid-row">
+        <div class="color-swatch-main" id="colorSwatch"></div>
+        <input type="color" id="color" value="#ff1e1e">
+        <span class="val" id="colorV">#FF1E1E</span>
+      </div>
+    </div>
+
+    <!-- Gradient editor (hidden until gradient effect selected) -->
+    <div id="grad-editor" class="hidden">
+      <div class="row" style="margin-bottom:4px">
+        <label>Angle</label>
+        <input type="range" id="gradAngle" min="0" max="359" step="1" value="0">
+        <span class="val" id="gradAngleV">0°</span>
+      </div>
+      <div style="font-size:.7em;text-transform:uppercase;letter-spacing:1.5px;
+        opacity:.5;margin-bottom:8px;font-weight:600">Color stops</div>
+      <div id="gradStops"></div>
+      <div id="gradPreview"></div>
+      <button id="gradAddBtn">+ Add stop</button>
+    </div>
+
+    <div class="row">
+      <label>Mouth open</label>
+      <input type="range" id="mouthMonitor" min="0" max="100" disabled>
+      <span class="val" id="mouthV">0%</span>
+    </div>
+
+    <!-- Proximity emotion mapping -->
+    <div id="prox-emo-block" style="margin-top:10px;padding:10px 0 0;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:.7em;text-transform:uppercase;letter-spacing:1.5px;opacity:.5;margin-bottom:10px;font-weight:600">
+        Proximity emotions
+        <span id="proxDistLive" style="float:right;font-size:.9em;opacity:.7;letter-spacing:0;text-transform:none">—</span>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label style="min-width:90px;font-size:.8em">Near <span style="opacity:.45">&lt;100mm</span></label>
+        <div class="prox-emo-pick" id="pick-near"></div>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <label style="min-width:90px;font-size:.8em">Close <span style="opacity:.45">&lt;400mm</span></label>
+        <div class="prox-emo-pick" id="pick-close"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sec-image" class="section hidden">
+    <h2>Upload image</h2>
+    <label class="upload" id="dropzone" for="fileInp">
+      <div class="big">📁</div>
+      <div class="lab" id="dropLab">Click here to choose image<br>or drop file here</div>
+      <input type="file" id="fileInp" accept="image/*">
+    </label>
+    <div class="upbtn">
+      <button class="btn" onclick="document.getElementById('fileInp').click()">📂 Choose file</button>
+    </div>
+    <div id="preview"><div class="caption">Preview (64×32)</div><img id="previewImg" width="256" alt=""></div>
+  </div>
+
+  <div id="sec-text" class="section hidden">
+    <h2>🅰️ Бегущая строка</h2>
+    <div class="row">
+      <label>Текст</label>
+      <input type="text" id="textInput" value="PROTOGEN ONLINE"
+             style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:#fff;font-family:inherit;font-size:1em">
+    </div>
+    <div class="row">
+      <label>Цвет</label>
+      <input type="color" id="textColor" value="#00dc46">
+      <span class="val" id="textColorV">#00DC46</span>
+    </div>
+    <div class="row">
+      <label>Шрифт</label>
+      <select id="textFont" style="flex:1">
+        <option value="pixel">Pixel 4×6 (встроенный)</option>
+      </select>
+      <span style="font-size:.75em;opacity:.5">(пока 1 шрифт)</span>
+    </div>
+    <div class="row">
+      <label>Размер</label>
+      <select id="textScale" style="flex:1">
+        <option value="1">1× (4×6 px) — мелкий</option>
+        <option value="2">2× (8×12 px) — средний</option>
+        <option value="3">3× (12×18 px) — крупный</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Эффект</label>
+      <select id="textEffect" style="flex:1">
+        <option value="solid">Сплошной цвет</option>
+        <option value="rainbow">🌈 Радуга</option>
+        <option value="blink">💡 Мигание</option>
+        <option value="color_cycle">🎨 Перелив цветов</option>
+      </select>
+    </div>
+    <div class="row"><label>Скорость</label>
+      <input type="range" id="textSpeed" min="5" max="60" value="24">
+      <span class="val" id="textSpeedV">24</span>
+    </div>
+    <div class="row" style="opacity:.6;font-size:.8em">
+      <small>Бежит непрерывно через оба дисплея слева направо</small>
+    </div>
+  </div>
+
+  <div id="sec-eq" class="section hidden">
+    <h2>EQ visualisation</h2>
+    <div class="row" style="margin-bottom:14px">
+      <label>Style</label>
+      <button class="btn" data-eqstyle="bars">Bars</button>
+      <button class="btn" data-eqstyle="spectrogram">Spectrogram</button>
+    </div>
+    <h2 style="margin-top:18px">ESP32 audio</h2>
+    <div class="row"><label>Noise margin</label>
+      <input type="range" id="margin" min="0" max="20" step="1"><span class="val" id="marginV">— dB</span></div>
+    <div class="row"><label>Gain</label>
+      <input type="range" id="gain" min="1" max="50" step="1"><span class="val" id="gainV">—</span></div>
+    <div class="row"><label>Amplify (raw)</label>
+      <input type="range" id="amp" min="1" max="30" step="1"><span class="val" id="ampV">—×</span></div>
+    <div class="row"><label>Smoothing</label>
+      <input type="range" id="smooth" min="0" max="95" step="5"><span class="val" id="smoothV">—%</span></div>
+    <div class="row" style="justify-content:flex-end;gap:10px">
+      <button class="btn" onclick="cmd('C')">Recalibrate</button>
+      <button class="btn warn" onclick="cmd('R')">Reset ESP defaults</button>
+    </div>
+    <h2 style="margin-top:18px">Live spectrum</h2><div id="bars"></div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card"><div class="k">Status</div><div class="v" id="eqStatus">—</div></div>
+      <div class="card"><div class="k">Port</div><div class="v s" id="eqPort">—</div></div>
+      <div class="card"><div class="k">Packets/s</div><div class="v" id="eqRate">—</div></div>
+      <div class="card"><div class="k">Uptime</div><div class="v" id="eqUp">—</div></div>
+      <div class="card"><div class="k">Distance</div><div class="v" id="eqDist">—</div></div>
+      <div class="card"><div class="k">Zone</div><div class="v" id="eqZone">—</div></div>
+    </div>
+  </div>
+
+  <div id="sec-dino" class="section hidden">
+    <h2>🦖 Динозаврик</h2>
+    <div class="row" style="justify-content:center;margin-top:10px">
+      <button id="dinoJump" class="btn"
+              style="font-size:1.4em;padding:18px 32px;border-radius:14px;
+                     background:linear-gradient(135deg,#3a8a78,#286656);
+                     min-width:180px">⬆ Прыжок (Space)</button>
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card"><div class="k">Score</div><div class="v" id="dinoScore">0</div></div>
+      <div class="card"><div class="k">High</div><div class="v" id="dinoHigh">0</div></div>
+      <div class="card"><div class="k">Sensor</div><div class="v" id="dinoTof">—</div></div>
+    </div>
+    <div class="row" style="opacity:.6;font-size:.8em;margin-top:8px">
+      <small>Прыжок: кнопка, Space/↑, или махнуть рукой перед дальномером. Пороги настраиваются в ⚙ Settings → «🦖 Динозаврик». После проигрыша следующий прыжок перезапускает.</small>
+    </div>
+  </div>
+
+  <div class="section"><h2>👂 Ear rings</h2>
+    <div class="row">
+      <label>Effect</label>
+      <select id="earsEffect" style="flex:1">
+        <option value="off">⏹ Off</option>
+        <option value="solid">⬛ Solid color</option>
+        <option value="rainbow">🌈 Rainbow rotate</option>
+        <option value="spectrum">📊 Spectrum / EQ</option>
+        <option value="pulse">💓 Pulse (audio)</option>
+        <option value="face">😊 Match face color</option>
+        <option value="wheel">⚙ Wheel chase</option>
+      </select>
+    </div>
+    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+      <label>Color</label>
+      <div id="earsColSwatch" style="width:42px;height:36px;border-radius:6px;border:2px solid #555;cursor:pointer;background:#ff0040;flex:0 0 auto"></div>
+      <input type="color" id="earsCol" value="#ff0040" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none">
+      <input type="text" id="earsColHex" value="#ff0040" maxlength="7" style="width:90px;background:#1a1a1a;color:#eee;border:1px solid #444;border-radius:4px;padding:6px;font-family:monospace">
+    </div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">
+      <button class="btn" data-preset="#ff0040" style="background:#ff0040">Red</button>
+      <button class="btn" data-preset="#ff8800" style="background:#ff8800">Orange</button>
+      <button class="btn" data-preset="#ffff00;color:#000" style="background:#ffff00;color:#000">Yellow</button>
+      <button class="btn" data-preset="#00ff40" style="background:#00ff40;color:#000">Green</button>
+      <button class="btn" data-preset="#00ffff" style="background:#00ffff;color:#000">Cyan</button>
+      <button class="btn" data-preset="#0066ff" style="background:#0066ff">Blue</button>
+      <button class="btn" data-preset="#aa00ff" style="background:#aa00ff">Purple</button>
+      <button class="btn" data-preset="#ffffff" style="background:#fff;color:#000">White</button>
+    </div>
+    <div class="row"><label>Brightness</label>
+      <input type="range" id="earsBri" min="0" max="100" value="80">
+      <span class="val" id="earsBriV">80%</span>
+    </div>
+    <div class="row" style="gap:6px;flex-wrap:wrap">
+      <button class="btn" id="earsTest">🧪 Test</button>
+    </div>
+  </div>
+
+  <div class="section"><h2>Display</h2>
+    <div class="row"><label>Brightness</label>
+      <input type="range" id="bright" min="5" max="100"><span class="val" id="brightV">—%</span></div>
+    <div class="row">
+      <label>2nd panel<br><small style="opacity:.5;font-size:.75em;font-weight:400">Mirror right matrix</small></label>
+      <div class="switch" id="mir"></div>
+      <span class="val" id="mirV" style="font-size:.75em;opacity:.6">OFF</span>
+    </div>
+    <div class="row"><label>Rotate 180°</label><div class="switch" id="rot"></div></div>
+  </div>
+
+  <div id="settings-panel" class="section hidden">
+    <h2>⚙ Advanced settings <span class="tag save" id="saveTag">saved</span></h2>
+    <div id="settingsGroups"></div>
+    <div class="row-actions">
+      <button class="btn warn" id="resetSettings">Reset all to defaults</button>
+    </div>
+    <div class="row-actions" style="margin-top:14px;border-top:1px solid #333;padding-top:14px">
+      <button class="btn" id="sysRestart" style="background:#3a5">🔄 Restart service</button>
+      <button class="btn warn" id="sysReboot" style="background:#a33">⚡ Reboot Pi</button>
+    </div>
+    <div style="margin-top:14px;border-top:1px solid #333;padding-top:14px">
+      <div style="opacity:.6;font-size:.75em;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">⬇ Software update</div>
+      <div id="updVer" style="font-size:.85em;margin-bottom:8px;opacity:.85">version: …</div>
+      <div class="row-actions" style="margin:0">
+        <button class="btn" id="updCheck">🔍 Check for updates</button>
+        <button class="btn" id="updApply" style="display:none;background:#3a5">⬇ Install update</button>
+        <button class="btn warn" id="updForce" style="display:none">⬇ Update and discard local changes</button>
+      </div>
+      <div id="updMsg" style="font-size:.85em;margin-top:8px;white-space:pre-wrap"></div>
+    </div>
+    <div class="row-actions" style="margin-top:10px;padding-top:10px;border-top:1px dashed #444">
+      <span style="opacity:.6;font-size:.75em;text-transform:uppercase;letter-spacing:1.5px;margin-right:8px">🎮 Easter Egg</span>
+      <button class="btn" id="sysDoom"
+              style="background:linear-gradient(135deg,#8b0000,#ff4444);color:#fff;font-weight:bold;border:1px solid #ff8888">
+        🔫 PLAY DOOM
+      </button>
+    </div>
+  </div>
+</div><!-- end #appShell -->
+
+<script>
+// helpers
+const $ = id => document.getElementById(id);
+const fmtT = s => s<60?s.toFixed(0)+"s":s<3600?Math.floor(s/60)+"m "+Math.floor(s%60)+"s":Math.floor(s/3600)+"h";
+const touched={};
+const touch=k=>{touched[k]=Date.now();};
+const notTouching=k=>!touched[k]||(Date.now()-touched[k]>2000);
+
+for(let i=0;i<16;i++){const b=document.createElement("div");b.className="bar";b.style.height="0%";$("bars").appendChild(b);}
+const barEls=document.querySelectorAll(".bar");
+
+async function apiSet(patch){
+  try{await fetch("/api/set",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});}
+  catch(e){console.error("apiSet",e);}
+}
+async function sendCmd(c,v){await fetch("/api/cmd",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cmd:c,value:v})});}
+async function cmd(c){await sendCmd(c,0);} window.cmd=cmd;
+
+const debounce=(fn,ms)=>{let h;return(...a)=>{clearTimeout(h);h=setTimeout(()=>fn(...a),ms);};};
+const sendM=debounce(v=>sendCmd("M",v),100);
+const sendG=debounce(v=>sendCmd("G",v),100);
+const sendA=debounce(v=>sendCmd("A",v),100);
+const sendSm=debounce(v=>sendCmd("S",v),100);
+
+// splash animation
+(function(){
+  const canvas=$("splashCanvas");
+  const ctx=canvas.getContext("2d");
+  const W=64,H=32;
+  let frame=0;
+  // simple animated eye polygon
+  const EYE=[[39,9],[56,5],[55,9],[54,13],[52,16],[49,18],[45,19],[43,17],[40,15],[39,12]];
+  function drawFace(t){
+    ctx.clearRect(0,0,W,H);
+    // glow pulse
+    const g=0.5+0.5*Math.sin(t*3);
+    ctx.fillStyle=`rgba(255,${Math.round(30+g*40)},${Math.round(g*30)},${0.7+g*0.3})`;
+    // eye
+    ctx.beginPath();
+    EYE.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+    ctx.closePath();ctx.fill();
+    // accent dot
+    ctx.beginPath();ctx.arc(5,6,2.5,0,Math.PI*2);ctx.fill();
+    // mouth - simple line morphing
+    const mo=0.4+0.4*Math.sin(t*2.3);
+    ctx.beginPath();
+    ctx.moveTo(1,22+mo*2);ctx.quadraticCurveTo(20,28+mo*3,39,22+mo*2);
+    ctx.strokeStyle=`rgba(255,${Math.round(60+g*60)},0,${0.8+g*0.2})`;
+    ctx.lineWidth=1.5;ctx.stroke();
+  }
+  let pct=0;
+  const STEPS=["Initialising…","Loading emotions…","Starting renderer…","Ready"];
+  let si=0;
+  const iv=setInterval(()=>{
+    frame++;
+    drawFace(frame/20);
+    pct=Math.min(pct+1.8,100);
+    $("splashBar").style.width=pct+"%";
+    if(frame%18===0&&si<STEPS.length-1){si++;$("splashStatus").textContent=STEPS[si];}
+  },30);
+  window._splashDone=()=>{
+    clearInterval(iv);
+    $("splashStatus").textContent="Ready ✓";
+    $("splashBar").style.width="100%";
+    setTimeout(()=>{
+      $("splash").classList.add("fade");
+      $("appShell").style.opacity="1";
+      setTimeout(()=>$("splash").style.display="none",600);
+    },300);
+  };
+})();
+
+// section routing
+function showSection(m){
+  ["emotion","image","text","eq","dino"].forEach(x=>{
+    const el=$("sec-"+x); if(el) el.classList.toggle("hidden",x!==m);
+  });
+  document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active",b.dataset.m===m));
+}
+
+// text mode
+const textInput  = $("textInput");
+const textColor  = $("textColor");
+const textColorV = $("textColorV");
+if (textInput) {
+  const sendText = (() => { let h; return v => { clearTimeout(h); h = setTimeout(()=>apiSet({text_content:v}),200); }; })();
+  textInput.oninput = e => { touch("text_content"); sendText(e.target.value); };
+}
+if (textColor) {
+  textColor.oninput = e => {
+    touch("text_color");
+    textColorV.textContent = e.target.value.toUpperCase();
+    apiSet({text_color: hexToRgb(e.target.value)});
+  };
+}
+
+// text scale / effect / speed
+const txScale = document.getElementById("textScale");
+const txEffect = document.getElementById("textEffect");
+const txSpeed = document.getElementById("textSpeed");
+const txSpeedV = document.getElementById("textSpeedV");
+function setTextSetting(key, val) {
+  fetch("/api/settings", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({[key]: val})
+  });
+}
+// Pupil quick toggle (in emotion section): setting eye_style, 0 = flat eyes, 1 = with a pupil
+const pq = document.getElementById("pupilQuick");
+if (pq) {
+  fetch("/api/settings").then(r => r.json()).then(j => {
+    const s = j.settings || j.values || j;
+    pq.classList.toggle("on", !!+s.eye_style);
+  }).catch(() => {});
+  pq.onclick = async () => {
+    const on = pq.classList.contains("on");
+    pq.classList.toggle("on", !on);
+    await fetch("/api/settings", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({eye_style: on ? 0 : 1})
+    });
+  };
+}
+// Mouth-EQ quick toggle (in emotion section)
+const mqe = document.getElementById("mouthEqQuick");
+if (mqe) {
+  mqe.onclick = async () => {
+    const on = mqe.classList.contains("on");
+    mqe.classList.toggle("on", !on);
+    await fetch("/api/settings", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({mouth_eq_enabled: on ? 0 : 1})
+    });
+  };
+  // initialize from current settings
+  fetch("/api/settings").then(r => r.json()).then(s => {
+    mqe.classList.toggle("on", !!s.mouth_eq_enabled);
+  }).catch(()=>{});
+}
+
+if (txScale)  txScale.onchange  = () => setTextSetting("text_scale", parseInt(txScale.value));
+if (txEffect) txEffect.onchange = () => setTextSetting("text_effect", txEffect.value);
+if (txSpeed) {
+  txSpeed.oninput = e => {
+    txSpeedV.textContent = e.target.value;
+    setTextSetting("text_speed", parseFloat(e.target.value));
+  };
+}
+
+// EQ visual style
+document.querySelectorAll("[data-eqstyle]").forEach(b => b.onclick = e => {
+  const v = e.currentTarget.dataset.eqstyle;
+  touch("effect");
+  document.querySelectorAll("[data-eqstyle]").forEach(x => x.classList.toggle("active", x===e.currentTarget));
+  apiSet({effect: v});
+});
+function switchMode(m){touch("mode");showSection(m);apiSet({mode:m});}
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>switchMode(b.dataset.m));
+
+// dino game
+function dinoJump(){ fetch("/api/dino/jump",{method:"POST"}); }
+const dinoBtn = $("dinoJump");
+if (dinoBtn) {
+  dinoBtn.onclick = (e) => { e.preventDefault(); dinoJump(); dinoBtn.blur(); };
+  dinoBtn.addEventListener("touchstart", (e) => { e.preventDefault(); dinoJump(); }, {passive:false});
+}
+document.addEventListener("keydown", (e) => {
+  if (e.code !== "Space" && e.code !== "ArrowUp") return;
+  const sec = $("sec-dino");
+  if (!sec || sec.classList.contains("hidden")) return;
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  e.preventDefault();
+  dinoJump();
+});
+
+// effect buttons
+function setEffectUI(eff){
+  document.querySelectorAll("[data-eff]").forEach(x=>x.classList.toggle("active",x.dataset.eff===eff));
+  $("grad-editor").classList.toggle("hidden",eff!=="gradient");
+  $("row-solid").classList.toggle("hidden",eff==="gradient");
+}
+document.querySelectorAll("[data-eff]").forEach(b=>b.onclick=e=>{
+  const eff=e.currentTarget.dataset.eff;
+  touch("effect");
+  setEffectUI(eff);
+  apiSet({effect:eff});
+});
+
+// solid colour
+function hexToRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function rgbToHex(r){return"#"+r.map(c=>c.toString(16).padStart(2,"0")).join("");}
+
+function setSolidSwatch(hex){
+  $("colorSwatch").style.background=hex;
+  $("color").value=hex;
+  $("colorV").textContent=hex.toUpperCase();
+}
+// clicking the swatch opens the hidden native picker
+$("colorSwatch").onclick=()=>$("color").click();
+$("color").oninput=e=>{
+  setSolidSwatch(e.target.value);
+  touch("color");
+  apiSet({color:hexToRgb(e.target.value),effect:"solid"});
+  setEffectUI("solid");
+};
+setSolidSwatch("#ff1e1e");
+
+// gradient editor
+let gradColors=[[255,0,0],[0,0,255]];
+let gradAngle=0;
+
+function gradCssStops(){
+  const n=gradColors.length;
+  return gradColors.map((c,i)=>`${rgbToHex(c)} ${Math.round(i/(n-1)*100)}%`).join(",");
+}
+function refreshGradPreview(){
+  const cssA=(gradAngle-90+360)%360;
+  $("gradPreview").style.background=
+    gradColors.length===1?rgbToHex(gradColors[0]):`linear-gradient(${cssA}deg,${gradCssStops()})`;
+}
+
+// Build stop rows - only called when COUNT changes (add/remove)
+function buildGradStops(){
+  const root=$("gradStops");
+  root.innerHTML="";
+  gradColors.forEach((c,i)=>{
+    const row=document.createElement("div");
+    row.className="grad-stop-row";
+    row.id="gsr_"+i;
+
+    // hidden native color input
+    const inp=document.createElement("input");
+    inp.type="color";
+    inp.id="gci_"+i;
+    inp.value=rgbToHex(c);
+
+    // visible swatch
+    const sw=document.createElement("div");
+    sw.className="swatch";
+    sw.style.background=rgbToHex(c);
+    sw.onclick=()=>inp.click();
+
+    inp.oninput=ev=>{
+      const hex=ev.target.value;
+      gradColors[i]=hexToRgb(hex);
+      sw.style.background=hex;
+      touch("gradient");
+      refreshGradPreview();
+      pushGradient();
+    };
+
+    const lbl=document.createElement("span");
+    lbl.className="stop-label";
+    lbl.textContent="Stop "+(i+1);
+
+    row.appendChild(inp);
+    row.appendChild(sw);
+    row.appendChild(lbl);
+
+    if(gradColors.length>2){
+      const rm=document.createElement("button");
+      rm.className="stop-rm";
+      rm.textContent="✕";
+      rm.onclick=()=>{gradColors.splice(i,1);buildGradStops();refreshGradPreview();pushGradient();};
+      row.appendChild(rm);
+    }
+    root.appendChild(row);
+  });
+  refreshGradPreview();
+}
+
+// Update swatch colours without rebuilding DOM (called from poll sync)
+function syncGradSwatches(){
+  gradColors.forEach((c,i)=>{
+    const inp=$("gci_"+i);
+    const sw=$("gsr_"+i)?.querySelector(".swatch");
+    if(!inp||!sw)return;
+    const h=rgbToHex(c);
+    inp.value=h;
+    sw.style.background=h;
+  });
+  refreshGradPreview();
+}
+
+const pushGradient=debounce(()=>{
+  apiSet({effect:"gradient",gradient_colors:gradColors,gradient_angle:gradAngle});
+},80);
+
+$("gradAddBtn").onclick=()=>{
+  if(gradColors.length>=8)return;
+  const last=gradColors[gradColors.length-1];
+  const prev=gradColors[gradColors.length-2]||last;
+  gradColors.push([
+    Math.round((last[0]+prev[0])/2),
+    Math.round((last[1]+prev[1])/2),
+    Math.round((last[2]+prev[2])/2),
+  ]);
+  buildGradStops();
+  pushGradient();
+};
+
+$("gradAngle").oninput=e=>{
+  gradAngle=+e.target.value;
+  $("gradAngleV").textContent=gradAngle+"°";
+  touch("gradient");
+  refreshGradPreview();
+  pushGradient();
+};
+
+buildGradStops();
+
+// display controls
+$("bright").oninput=e=>{touch("bright");$("brightV").textContent=e.target.value+"%";apiSet({brightness:+e.target.value});};
+$("rot").onclick=()=>{touch("rot");$("rot").classList.toggle("on");apiSet({rotate_180:$("rot").classList.contains("on")});};
+$("mir").onclick=()=>{
+  touch("mir");$("mir").classList.toggle("on");
+  const on=$("mir").classList.contains("on");
+  $("mirV").textContent=on?"ON":"OFF";
+  apiSet({mirror:on});
+};
+$("margin").oninput=e=>{touch("margin");$("marginV").textContent=e.target.value+" dB";sendM(+e.target.value);};
+$("gain").oninput=e=>{touch("gain");$("gainV").textContent=e.target.value;sendG(+e.target.value);};
+$("amp").oninput=e=>{touch("amp");$("ampV").textContent=e.target.value+"×";sendA(+e.target.value);};
+$("smooth").oninput=e=>{touch("smooth");$("smoothV").textContent=e.target.value+"%";sendSm(+e.target.value);};
+
+// emotions
+async function loadEmotions(){
+  const list=await(await fetch("/api/emotions")).json();
+  $("ceList").innerHTML=list.filter(e=>e.custom).map(e=>
+    `<div class="row"><span>${e.emoji} ${e.label}</span><button class="btn warn" data-del="${e.id}">Удалить</button></div>`).join("");
+  $("ceList").querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    await fetch("/api/emotions/custom/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:b.dataset.del})});
+    loadEmotions();
+  });
+  $("emos").innerHTML=list.map(e=>`<button class="btn big" data-em="${e.id}" title="${e.label}">${e.emoji}</button>`).join("");
+  $("emos").querySelectorAll("[data-em]").forEach(b=>b.onclick=e=>{
+    touch("emotion");
+    document.querySelectorAll("[data-em]").forEach(x=>x.classList.toggle("active",x===e.currentTarget));
+    apiSet({emotion:e.currentTarget.dataset.em});
+  });
+}
+
+$("winkL").onclick=()=>apiSet({wink_request:"left"});
+$("winkR").onclick=()=>apiSet({wink_request:"right"});
+$("ceAdd").onclick=async()=>{
+  const fd=new FormData();
+  fd.append("label",$("ceLabel").value);fd.append("emoji",$("ceEmoji").value);
+  [["eye_open","ceEye"],["mouth_closed","ceMouthC"],["mouth_open","ceMouthO"],["eye_blink","ceBlink"]]
+    .forEach(([k,id])=>{const f=$(id).files[0];if(f)fd.append(k,f);});
+  $("ceMsg").textContent="…";
+  try{
+    const j=await(await fetch("/api/emotions/custom",{method:"POST",body:fd})).json();
+    $("ceMsg").textContent=j.ok?"добавлено":"ошибка: "+j.error;
+    if(j.ok){await loadEmotions();apiSet({emotion:j.id});}
+  }catch(e){$("ceMsg").textContent="ошибка: "+e;}
+};
+
+// image upload
+const drop=$("dropzone"),fileInp=$("fileInp");
+async function uploadFile(file){
+  if(!file)return;
+  const fd=new FormData();fd.append("file",file);
+  $("dropLab").innerHTML="Uploading "+file.name+"...";
+  try{
+    const r=await fetch("/api/upload",{method:"POST",body:fd});
+    const j=await r.json();
+    if(j.ok){
+      const note=j.animated?" ("+j.frames+" frames"+(j.truncated?", cut from "+j.source_frames:"")+")":"";
+      $("dropLab").innerHTML="✓ "+file.name+note+"<br>Click to replace";
+      $("preview").style.display="block";
+      $("previewImg").src="/api/image?t="+Date.now();
+      touch("mode");showSection("image");
+    }else{$("dropLab").innerHTML="❌ "+(j.error||"upload failed");}
+  }catch(e){$("dropLab").innerHTML="❌ "+e.message;}
+}
+fileInp.addEventListener("change",e=>uploadFile(e.target.files[0]));
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("drag");});
+drop.addEventListener("dragleave",()=>drop.classList.remove("drag"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("drag");if(e.dataTransfer.files[0])uploadFile(e.dataTransfer.files[0]);});
+
+// settings panel
+let SETTINGS_SCHEMA=null;
+$("settingsToggle").onclick=()=>$("settings-panel").classList.toggle("hidden");
+
+// party toggle
+let partyOn=false;
+$("partyToggle").onclick=()=>{
+  touch("party");
+  partyOn=!partyOn;
+  $("partyToggle").classList.toggle("active",partyOn);
+  apiSet({party:partyOn});
+};
+
+const sendSetting=debounce(async(key,value)=>{
+  await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({[key]:value})});
+  const tag=$("saveTag");tag.textContent="saved ✓";tag.style.opacity="1";
+  setTimeout(()=>tag.style.opacity="0.5",800);
+},150);
+
+function formatVal(v){
+  if(typeof v==="number"){if(Number.isInteger(v))return v.toString();return v.toFixed(2);}
+  return v;
+}
+
+async function loadSettingsSchema(){
+  const r=await fetch("/api/settings/schema");
+  SETTINGS_SCHEMA=await r.json();
+  const root=$("settingsGroups");
+  root.innerHTML=SETTINGS_SCHEMA.map((group,gi)=>`
+    <details class="group" ${gi===0?"open":""}>
+      <summary>${group.group}</summary>
+      <div>${group.items.map(it=>`
+        <div class="set-row">
+          <div class="lbl">${it.label}${it.hint?`<small>${it.hint}</small>`:""}</div>
+          <input type="range" id="set_${it.key}" min="${it.min}" max="${it.max}" step="${it.step}"
+                 data-key="${it.key}" data-type="${it.type}">
+          <div class="v" id="setval_${it.key}">—</div>
+        </div>`).join("")}
+      </div>
+    </details>`).join("");
+  root.querySelectorAll("input[type=range]").forEach(inp=>{
+    inp.oninput=e=>{
+      const key=e.target.dataset.key,type=e.target.dataset.type;
+      const v=type==="int"?parseInt(e.target.value):parseFloat(e.target.value);
+      touch("set_"+key);$("setval_"+key).textContent=formatVal(v);sendSetting(key,v);
+    };
+  });
+}
+
+$("resetSettings").onclick=async()=>{
+  if(!confirm("Reset all advanced settings to defaults?"))return;
+  await fetch("/api/settings/reset",{method:"POST"});
+};
+
+const sr = document.getElementById("sysRestart");
+if(sr) sr.onclick = async()=>{
+  if(!confirm("Restart the protogen service?\n(~3 sec downtime, no full reboot)"))return;
+  sr.textContent = "🔄 restarting...";
+  sr.disabled = true;
+  try { await fetch("/api/system/restart",{method:"POST"}); } catch(e){}
+  setTimeout(()=>location.reload(), 4000);
+};
+
+const sb = document.getElementById("sysReboot");
+if(sb) sb.onclick = async()=>{
+  if(!confirm("REBOOT the whole Raspberry Pi?\n(~30 sec downtime)"))return;
+  if(!confirm("Are you sure? The matrix will go dark for ~30 seconds."))return;
+  sb.textContent = "⚡ rebooting...";
+  sb.disabled = true;
+  try { await fetch("/api/system/reboot",{method:"POST"}); } catch(e){}
+  setTimeout(()=>location.reload(), 35000);
+};
+
+// software update
+const updVer=$("updVer"),updMsg=$("updMsg"),updCheck=$("updCheck"),
+      updApply=$("updApply"),updForce=$("updForce");
+function updShowVersion(v){
+  if(!v||!v.repo){updVer.textContent="version: unknown (this copy was not installed with git)";return;}
+  updVer.textContent="version: "+(v.version||v.commit)+(v.date?"  ·  "+v.date:"")+
+    (v.subject?"  ·  "+v.subject:"")+(v.modified?"  ·  modified on this device":"");
+}
+async function updLoadVersion(){
+  try{updShowVersion(await (await fetch("/api/system/version")).json());}catch(e){}
+}
+if(updCheck){
+  updLoadVersion();
+  updCheck.onclick=async()=>{
+    updCheck.disabled=true;updMsg.textContent="Asking the server…";
+    updApply.style.display=updForce.style.display="none";
+    try{
+      const j=await (await fetch("/api/system/update/check",{method:"POST"})).json();
+      if(!j.ok){updMsg.textContent="❌ "+j.error;}
+      else if(!j.behind){updMsg.textContent="✓ This is the newest version.";}
+      else{
+        updMsg.textContent=j.behind+" update"+(j.behind>1?"s":"")+" available:\n"+
+          j.changes.map(c=>"• "+c.date+"  "+c.subject).join("\n");
+        updApply.style.display="";
+        if(j.modified||j.ahead)updForce.style.display="";
+      }
+    }catch(e){updMsg.textContent="❌ "+e.message;}
+    updCheck.disabled=false;
+  };
+  const updRun=async(force)=>{
+    if(!confirm(force
+      ?"Install the update and DISCARD changes made to the program files on this device?\n(Your settings are kept.)"
+      :"Install the update?\nThe face restarts; it takes about a minute.\nIf the new version does not start, the old one is restored."))return;
+    updCheck.disabled=updApply.disabled=updForce.disabled=true;
+    updMsg.textContent="Starting…";
+    try{
+      const j=await (await fetch("/api/system/update",{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify({force})})).json();
+      if(!j.ok){updMsg.textContent="❌ "+j.error;updCheck.disabled=updApply.disabled=updForce.disabled=false;return;}
+    }catch(e){updMsg.textContent="❌ "+e.message;updCheck.disabled=updApply.disabled=updForce.disabled=false;return;}
+    // The service restarts during the update: failed polls are expected.
+    const t0=Date.now();
+    const poll=async()=>{
+      let st=null;
+      try{st=await (await fetch("/api/system/update/status",{cache:"no-store"})).json();}catch(e){}
+      if(st&&st.message)updMsg.textContent="⏳ "+st.message;
+      const end=st&&["done","up_to_date","rolled_back","error"].includes(st.state);
+      if(end){
+        updMsg.textContent=(st.state==="done"||st.state==="up_to_date"?"✓ ":"❌ ")+st.message;
+        updCheck.disabled=updApply.disabled=updForce.disabled=false;
+        updApply.style.display=updForce.style.display="none";
+        if(st.state==="done")setTimeout(()=>location.reload(),2500);else updLoadVersion();
+        return;
+      }
+      if(Date.now()-t0>240000){updMsg.textContent="❌ No answer from the device for 4 minutes. Reload the page.";return;}
+      setTimeout(poll,2000);
+    };
+    setTimeout(poll,1500);
+  };
+  updApply.onclick=()=>updRun(false);
+  updForce.onclick=()=>updRun(true);
+}
+
+const sd = document.getElementById("sysDoom");
+if(sd) sd.onclick = async()=>{
+  if(!confirm("Запустить DOOM на матрице?\n\n• Лицо протогена остановится на время игры\n• Управление: DualShock 4 (PS-кнопка для подключения)\n• Выход из DOOM: Options → Quit\n• Протоген вернётся автоматически"))return;
+  sd.textContent = "🔫 launching DOOM...";
+  sd.disabled = true;
+  try {
+    const r = await fetch("/api/system/launch_doom",{method:"POST"});
+    const j = await r.json();
+    if(j.ok) {
+      sd.textContent = "🔫 DOOM запущен — играй!";
+    } else {
+      sd.textContent = "❌ " + (j.error || "ошибка");
+      sd.disabled = false;
+    }
+  } catch(e) {
+    sd.textContent = "❌ " + e.message;
+    sd.disabled = false;
+  }
+};
+
+// ear rings
+function hexToRgbE(h){
+  h = h.replace("#","");
+  if(h.length === 3) h = h.split("").map(c=>c+c).join("");
+  return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+}
+function rgbToHexE(r,g,b){
+  return "#" + [r,g,b].map(v => v.toString(16).padStart(2,"0")).join("");
+}
+
+async function pushEarsState(){
+  const c = hexToRgbE(document.getElementById("earsCol").value);
+  const bri = parseInt(document.getElementById("earsBri").value) / 100;
+  const effect = document.getElementById("earsEffect").value;
+  await fetch("/api/ears/effect", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({effect, color: c, brightness: bri})
+  });
+}
+
+function setEarsColor(hex){
+  hex = hex.toLowerCase();
+  if(!/^#[0-9a-f]{6}$/.test(hex)) return;
+  const sw = document.getElementById("earsColSwatch");
+  const cp = document.getElementById("earsCol");
+  const tx = document.getElementById("earsColHex");
+  if(sw) sw.style.background = hex;
+  if(cp) cp.value = hex;
+  if(tx && tx.value.toLowerCase() !== hex) tx.value = hex;
+}
+
+if(document.getElementById("earsEffect")){
+  document.getElementById("earsEffect").addEventListener("change", pushEarsState);
+
+  // Swatch click -> open native color picker
+  document.getElementById("earsColSwatch").addEventListener("click", ()=>{
+    document.getElementById("earsCol").click();
+  });
+  // Hidden native picker -> updates swatch + hex on change
+  document.getElementById("earsCol").addEventListener("input", e => {
+    setEarsColor(e.target.value);
+  });
+  document.getElementById("earsCol").addEventListener("change", pushEarsState);
+  // Hex text field -> updates swatch and picker, pushes on blur/enter
+  const hexInp = document.getElementById("earsColHex");
+  hexInp.addEventListener("input", e => {
+    let v = e.target.value.trim();
+    if(v && v[0] !== "#") v = "#" + v;
+    if(/^#[0-9a-f]{6}$/i.test(v)){
+      setEarsColor(v.toLowerCase());
+    }
+  });
+  hexInp.addEventListener("change", pushEarsState);
+  hexInp.addEventListener("keydown", e => { if(e.key === "Enter"){ e.target.blur(); }});
+
+  // Preset color chips
+  document.querySelectorAll("[data-preset]").forEach(btn => {
+    btn.onclick = ()=>{
+      const hex = btn.dataset.preset.split(";")[0];
+      setEarsColor(hex);
+      pushEarsState();
+    };
+  });
+
+  document.getElementById("earsBri").addEventListener("input", e => {
+    document.getElementById("earsBriV").textContent = e.target.value + "%";
+  });
+  document.getElementById("earsBri").addEventListener("change", pushEarsState);
+  document.getElementById("earsTest").onclick = async()=>{
+    await fetch("/api/ears/test", {method:"POST"});
+  };
+
+  // Initial sync from server
+  (async()=>{
+    try{
+      const r = await (await fetch("/api/ears/effect")).json();
+      if(r.effect) document.getElementById("earsEffect").value = r.effect;
+      if(r.color){
+        setEarsColor(rgbToHexE(r.color[0]|0, r.color[1]|0, r.color[2]|0));
+      }
+      if(typeof r.brightness === "number"){
+        const v = Math.round(r.brightness * 100);
+        document.getElementById("earsBri").value = v;
+        document.getElementById("earsBriV").textContent = v + "%";
+      }
+    }catch(e){}
+  })();
+}
+
+// poll loop
+let firstTick=true;
+async function tick(){
+  try{
+    const s=await(await fetch("/api/status")).json();
+
+    // dismiss splash on first successful response
+    if(firstTick){firstTick=false;window._splashDone();}
+
+    $("dot").className=s.connected?"dot on":"dot";
+    if(notTouching("party")){
+      partyOn=!!s.party;
+      $("partyToggle").classList.toggle("active",partyOn);
+    }
+    if(notTouching("mode"))showSection(s.mode);
+    if(notTouching("emotion"))document.querySelectorAll("[data-em]").forEach(b=>b.classList.toggle("active",b.dataset.em===s.emotion));
+    $("emoShown").textContent=(s.emotion_shown&&s.emotion_shown!==s.emotion?"сейчас: "+s.emotion_shown+" · ":"")+(s.auto_gain_now?"громкость ×"+s.auto_gain_now:"");
+    if(notTouching("effect")){
+      setEffectUI(s.effect);
+    }
+    if(notTouching("color")){
+      const hex="#"+s.color.map(c=>c.toString(16).padStart(2,"0")).join("");
+      setSolidSwatch(hex);
+    }
+    // gradient sync - only update values, never rebuild DOM while touching
+    if(notTouching("gradient")&&s.gradient_colors){
+      const newN=s.gradient_colors.length;
+      const oldN=gradColors.length;
+      gradColors=s.gradient_colors;
+      gradAngle=s.gradient_angle||0;
+      $("gradAngle").value=gradAngle;
+      $("gradAngleV").textContent=gradAngle+"°";
+      if(newN!==oldN){buildGradStops();}else{syncGradSwatches();}
+    }
+    if(notTouching("bright")){$("bright").value=s.brightness;$("brightV").textContent=s.brightness+"%";}
+    if(notTouching("rot"))$("rot").classList.toggle("on",s.rotate_180);
+    if(notTouching("mir")){$("mir").classList.toggle("on",s.mirror);$("mirV").textContent=s.mirror?"ON":"OFF";}
+    if($("dinoScore"))$("dinoScore").textContent=s.dino_score||0;
+    if($("dinoHigh"))$("dinoHigh").textContent=s.dino_high||0;
+    if($("dinoTof")){
+      const dm=s.distance_smoothed_mm;
+      $("dinoTof").textContent=(dm==null)?"out":(dm<1000?dm+" мм":(dm/1000).toFixed(2)+" м");
+    }
+    $("eqStatus").textContent=s.connected?"ONLINE":"OFFLINE";
+    $("eqPort").textContent=s.port||"—";
+    $("eqRate").textContent=s.eq_rate_hz+" Hz";
+    $("eqUp").textContent=s.esp_uptime_s?fmtT(s.esp_uptime_s):"—";
+    const dEl=$("eqDist"),zEl=$("eqZone");
+    if(!s.esp_tof_ok){dEl.textContent="N/A";zEl.textContent="—";dEl.className="v stale";}
+    else if(s.distance_smoothed_mm==null){dEl.textContent="out";zEl.textContent=s.distance_zone||"—";dEl.className="v dead";}
+    else{
+      const mm=s.distance_smoothed_mm;
+      dEl.textContent=mm<1000?(mm+" mm"):(mm/1000).toFixed(2)+" m";
+      const z=s.distance_zone||"unknown";
+      zEl.textContent=z.toUpperCase();
+      dEl.className="v "+(z==="near"?"dead":z==="close"?"stale":"fresh");
+    }
+    for(let i=0;i<16;i++)barEls[i].style.height=(s.bars[i]/255*100)+"%";
+    if(notTouching("margin")){$("margin").value=s.noise_margin;$("marginV").textContent=s.noise_margin+" dB";}
+    if(notTouching("gain")){$("gain").value=s.db_gain;$("gainV").textContent=s.db_gain;}
+    if(notTouching("amp")){$("amp").value=s.amp_mult;$("ampV").textContent=s.amp_mult+"×";}
+    if(notTouching("smooth")){$("smooth").value=s.smoothing;$("smoothV").textContent=s.smoothing+"%";}
+    if(s.has_image&&!$("previewImg").src.includes("/api/image")){
+      $("preview").style.display="block";$("previewImg").src="/api/image?t="+Date.now();
+    }
+    const m=s.mouth_open_level||0;
+    $("mouthMonitor").value=Math.round(m*100);$("mouthV").textContent=Math.round(m*100)+"%";
+    if(s.settings){
+      Object.entries(s.settings).forEach(([k,v])=>{
+        if(!notTouching("set_"+k))return;
+        const inp=$("set_"+k);
+        if(inp&&parseFloat(inp.value)!==v){inp.value=v;const vEl=$("setval_"+k);if(vEl)vEl.textContent=formatVal(v);}
+      });
+    }
+  }catch(e){}
+}
+
+(async()=>{
+  await loadEmotions();
+  await loadSettingsSchema();
+  setInterval(tick,200);
+  tick();
+})();
+</script>
+</body></html>

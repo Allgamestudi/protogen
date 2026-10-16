@@ -1,0 +1,18 @@
+# Сборка bad_apple_player.
+
+CXX      := g++
+CXXFLAGS := -O2 -Wall -std=c++11 -I$(HOME)/rpi-rgb-led-matrix/include
+LDFLAGS  := -L$(HOME)/rpi-rgb-led-matrix/lib -lrgbmatrix -lpthread -lrt -lm -lstdc++
+
+OUTPUT   := bad_apple_player
+
+.PHONY: all clean
+
+all: $(OUTPUT)
+
+$(OUTPUT): bad_apple_player.cpp
+	$(CXX) $(CXXFLAGS) $< $(LDFLAGS) -o $@
+	@echo "OK: $(OUTPUT)"
+
+clean:
+	rm -f $(OUTPUT)

@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+build/
+*.bin
+*.elf
+*.hex
+*.map
+
+# Logs
+*.log
+/tmp/
+
+# Uploaded media (user content)
+/tmp/led_uploads/
+
+# User settings (persisted on device, don't overwrite on deploy)
+pi/settings.json
+saves/
+
+# Not part of the software that the devices download. Remove a line to
+# publish that folder as well.
+/3d models/
+/hardware/
+/Proto.docx
+/planner.html
+
+# Video and frames for the Bad Apple player (large, not ours to distribute)
+/pi/bad apple/
+*.mp4
+*.raw
+
+# Old copies of the web app, kept locally only
+/web_app.py
+/pi/static/web_app.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+# recordings and release archives are built, not kept
+benchmarks/*.gif
+/dist/
+
+# business card: the PDFs and PNGs are made by card/make_card.py
+/card/card_*.pdf
+/card/card_*.png
