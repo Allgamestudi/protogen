@@ -62,3 +62,9 @@ benchmarks/*.gif
 # business card: the PDFs and PNGs are made by card/make_card.py
 /card/card_*.pdf
 /card/card_*.png
+
+# not part of the firmware: business card, benchmark results, the old web page files
+/card/
+/benchmarks/
+/pi/static/
+/pi/templates/
