@@ -294,7 +294,7 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
       <h2 data-t="update"></h2>
       <div class="hint" id="ver"></div>
       <div id="updSetup" style="display:none;margin-top:10px">
-        <p class="hint" data-t="updSetupHint"></p>
+        <p class="hint" id="updHint" data-t="updSetupHint"></p>
         <div class="row"><span class="lab" data-t="updRepo"></span><div class="ctl"><input type="text" id="updUrl" autocomplete="off" autocapitalize="off"></div></div>
         <div class="row" id="updTokRow"><span class="lab" data-t="updToken"></span><div class="ctl"><input type="password" id="updTok" autocomplete="off" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0"></div></div>
         <div class="btns"><button class="btn pri" id="updConnect" data-t="updConnect"></button></div>
@@ -721,7 +721,7 @@ async function loadVersion() {
     $("updSetup").style.display = v.repo ? "none" : "";
     $("updButtons").style.display = v.repo ? "" : "none";
     if (!v.repo && !$("updUrl").value) $("updUrl").value = v.default_repo || "";
-    $("updTokRow").style.display = v.token_builtin ? "none" : "";
+    $("updTokRow").style.display = $("updHint").style.display = v.token_builtin ? "none" : "";
     $("ver").textContent = v.repo ? t("version") + ": " + (v.version || v.commit) + (v.date ? " · " + v.date : "") + (v.subject ? " · " + v.subject : "") + (v.modified ? " · " + t("modified") : "")
       : (v.release ? t("version") + ": " + v.release : t("verUnknown")); } catch (e) {}
 }
