@@ -197,6 +197,31 @@ def api_wifi_connect():
     return jsonify(wifi.connect(d.get("ssid"), d.get("password") or ""))
 
 
+@app.route("/api/wifi/saved")
+def api_wifi_saved():
+    return jsonify({"networks": wifi.saved()})
+
+
+@app.route("/api/wifi/add", methods=["POST"])
+def api_wifi_add():
+    d = request.get_json(silent=True) or {}
+    return jsonify(wifi.add(d.get("ssid"), d.get("password") or ""))
+
+
+@app.route("/api/wifi/forget", methods=["POST"])
+def api_wifi_forget():
+    d = request.get_json(silent=True) or {}
+    return jsonify(wifi.forget(d.get("ssid") or ""))
+
+
+@app.route("/api/system/update/setup", methods=["POST"])
+def api_system_update_setup():
+    if SIMULATED:
+        return jsonify({"ok": False, "error": "simulator: updates are switched off"})
+    d = request.get_json(silent=True) or {}
+    return jsonify(_no_network() or updater.setup((d.get("url") or "").strip(), (d.get("token") or "").strip()))
+
+
 @app.route("/api/system/update/status")
 def api_system_update_status():
     return jsonify(updater.status())

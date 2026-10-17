@@ -35,10 +35,11 @@ else
   git remote add origin "$URL"
 fi
 
-echo "downloading $URL ($BRANCH)"
+SHOWN="$(printf '%s' "$URL" | sed -E 's#(https?://)[^/@]+@#\1***@#')"
+echo "downloading $SHOWN ($BRANCH)"
 git fetch --prune origin
 git rev-parse --verify --quiet "origin/$BRANCH" >/dev/null \
-  || { echo "branch $BRANCH not found in $URL" >&2; exit 1; }
+  || { echo "branch $BRANCH not found in $SHOWN" >&2; exit 1; }
 
 # Tracked files -> repository version; untracked files are left alone.
 git checkout -q -B "$BRANCH"

@@ -203,6 +203,57 @@ def _join(ssid, password, before):
         _job.update(state="error" if reason else "ok", reason=reason)
 
 
+def saved():
+    """Networks the Pi remembers and joins by itself: [{"ssid", "active"}, ...]."""
+    if fake is not None:
+        here = fake.get("ssid") if fake.get("net") != "no_wifi" else None
+        names = fake.setdefault("saved", ["Home"])
+        return [{"ssid": n, "active": n == here} for n in names]
+    ok, out, _ = _nmcli("-t", "-f", "NAME,TYPE,ACTIVE", "connection", "show")
+    nets = []
+    for line in out.splitlines() if ok else []:
+        f = split_terse(line)
+        if len(f) >= 3 and f[1] in ("802-11-wireless", "wifi"):
+            nets.append({"ssid": f[0], "active": f[2] == "yes"})
+    return nets
+
+
+def add(ssid, password=""):
+    """Remember a network without joining it now (it is joined when it is in range)."""
+    reason = check_input(ssid, password)
+    if reason:
+        return {"ok": False, "reason": reason}
+    if fake is not None:
+        names = fake.setdefault("saved", ["Home"])
+        if ssid not in names:
+            names.append(ssid)
+        return {"ok": True}
+    if not available():
+        return {"ok": False, "reason": "unavailable"}
+    if ssid in _known_profiles():
+        _nmcli("connection", "delete", "id", ssid)
+    args = ["connection", "add", "type", "wifi", "con-name", ssid, "ifname", "*", "ssid", ssid,
+            "connection.autoconnect", "yes"]
+    if password:
+        args += ["wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password]
+    ok, _, err = _nmcli(*args)
+    return {"ok": True} if ok else {"ok": False, "reason": "failed"}
+
+
+def forget(ssid):
+    """Drop a remembered network. The one in use stays: the page would lose the Pi."""
+    for net in saved():
+        if net["ssid"] == ssid:
+            if net["active"]:
+                return {"ok": False, "reason": "active"}
+            if fake is not None:
+                fake["saved"].remove(ssid)
+                return {"ok": True}
+            ok, _, _ = _nmcli("connection", "delete", "id", ssid)
+            return {"ok": ok} if ok else {"ok": False, "reason": "failed"}
+    return {"ok": False, "reason": "not_found"}
+
+
 def connect(ssid, password=""):
     """Start joining a network. -> {"ok": True} or {"ok": False, "reason": ...}."""
     reason = check_input(ssid, password)

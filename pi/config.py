@@ -31,6 +31,7 @@ PEAK_GRAV   = 2.2                # peak-hold drop acceleration
 # Web
 WEB_PORT    = 5001
 WEB_PORT_PLAIN = 80              # second port, for http://proto.local without ":5001"; 0 = off
+UPDATE_REPO = "https://github.com/Allgamestudi/protogen.git"   # offered on the page for updates
 HOSTNAME    = "proto"            # the device is kept at http://<this>.local; "" = leave the system alone
 UPLOAD_DIR  = "/tmp/led_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)

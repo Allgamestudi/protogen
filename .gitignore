@@ -68,3 +68,6 @@ benchmarks/*.gif
 /benchmarks/
 /pi/static/
 /pi/templates/
+
+# read-only update token: goes into the release archive only
+/pi/update_token

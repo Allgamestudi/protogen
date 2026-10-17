@@ -239,6 +239,21 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
 
   <!-- Settings -->
   <div class="tab" id="tab-settings">
+    <div class="card" id="cardWifi">
+      <h2>Wi-Fi</h2>
+      <div class="hint" id="wfState"></div>
+      <div class="row"><span class="lab" data-t="wfNet"></span><div class="ctl">
+        <input type="text" id="wfSsid" list="wfList" maxlength="32" autocomplete="off" autocapitalize="off"><datalist id="wfList"></datalist>
+        <button class="btn" id="wfScan" title="">🔍</button></div></div>
+      <div class="row"><span class="lab" data-t="wfPass"></span><div class="ctl">
+        <input type="password" id="wfPw" maxlength="64" autocomplete="off" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0">
+        <button class="btn" id="wfShow">👁</button></div></div>
+      <div class="btns"><button class="btn pri" id="wfGo" data-t="wfConnect"></button>
+        <button class="btn" id="wfAdd" data-t="wfSave"></button></div>
+      <h2 style="margin-top:14px" data-t="wfSaved"></h2>
+      <div id="wfSavedList" class="hint"></div>
+      <p class="hint" data-t="wfHint"></p>
+    </div>
     <div class="search">
       <input type="text" id="find" data-tp="search">
       <button class="chip" id="allBtn"></button>
@@ -275,22 +290,16 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
       <div class="btns"><button class="btn pri" id="ceAdd" data-t="add"></button></div>
       <div id="ceList" style="margin-top:8px"></div>
     </div>
-    <div class="card" id="cardWifi">
-      <h2>Wi-Fi</h2>
-      <div class="hint" id="wfState"></div>
-      <div class="row"><span class="lab" data-t="wfNet"></span><div class="ctl">
-        <input type="text" id="wfSsid" list="wfList" maxlength="32" autocomplete="off" autocapitalize="off"><datalist id="wfList"></datalist>
-        <button class="btn" id="wfScan" title="">🔍</button></div></div>
-      <div class="row"><span class="lab" data-t="wfPass"></span><div class="ctl">
-        <input type="password" id="wfPw" maxlength="64" autocomplete="off" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0">
-        <button class="btn" id="wfShow">👁</button></div></div>
-      <div class="btns"><button class="btn pri" id="wfGo" data-t="wfConnect"></button></div>
-      <p class="hint" data-t="wfHint"></p>
-    </div>
     <div class="card">
       <h2 data-t="update"></h2>
       <div class="hint" id="ver"></div>
-      <div class="btns" style="margin-top:10px">
+      <div id="updSetup" style="display:none;margin-top:10px">
+        <p class="hint" data-t="updSetupHint"></p>
+        <div class="row"><span class="lab" data-t="updRepo"></span><div class="ctl"><input type="text" id="updUrl" autocomplete="off" autocapitalize="off"></div></div>
+        <div class="row" id="updTokRow"><span class="lab" data-t="updToken"></span><div class="ctl"><input type="password" id="updTok" autocomplete="off" style="flex:1;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0"></div></div>
+        <div class="btns"><button class="btn pri" id="updConnect" data-t="updConnect"></button></div>
+      </div>
+      <div class="btns" style="margin-top:10px" id="updButtons">
         <button class="btn" id="updCheck" data-t="updCheck"></button>
         <button class="btn pri" id="updApply" style="display:none" data-t="updInstall"></button>
         <button class="btn danger" id="updForce" style="display:none" data-t="updForce"></button>
@@ -381,12 +390,16 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  simSound:"Sound",sndSilence:"Silence",sndSpeech:"Speech",sndMusic:"Music",sndManual:"Constant",simLevel:"Loudness",
  simGestures:"Gestures",gNod:"Nod",gShake:"Shake head",gPet:"Pet",gBoop:"Poke the nose",gKnock:"Two knocks",
  simTime:"Time",simPause:"Pause",simLink:"Sensors connected",simLinkHint:"off shows the 'no sensors' screen",
- wfNet:"Network",wfPass:"Password",wfConnect:"Connect",wfConnecting:"Connecting…",wfDone:"Connected",
+ wfNet:"Network",wfSave:"Save for later",wfSaved:"Saved networks",wfAdded:"Saved: the protogen joins it when it is in range",
+ wfForgetQ:"Forget this network?",wfNone:"none yet",wf_active:"This is the network in use: connect to another one first",wf_not_found:"There is no such network nearby",
+ updSetupHint:"This copy was installed by hand. Connect it to the repository once, then updates come from there. For a private repository paste an access token (GitHub: Settings, Developer settings, fine-grained token, read-only Contents).",
+ updRepo:"Repository",updToken:"Token",updConnect:"Connect updates",updConnecting:"Downloading the repository…",
+ upd_bad_url:"The address must look like https://github.com/name/repo.git",upd_bad_token:"This does not look like a token",upd_already:"Updates are already connected",upd_busy:"Something is already running, wait",wfPass:"Password",wfConnect:"Connect",wfConnecting:"Connecting…",wfDone:"Connected",
  wfHint:"The protogen needs Wi-Fi with internet only for updates. If you move it to another network, connect your phone to that network too and open this page again.",
  wfOnline:"Connected to",wfCable:"Connected by cable",wfInternetOk:"internet works",wfSearching:"Looking for networks…",wfFound:"networks found",
  wfUnavailable:"Wi-Fi cannot be set up from this page on this device.",
  net_no_wifi:"Connect Wi-Fi",net_no_internet:"No access to the internet",netOnline:"Online",netNoInternet:"No internet",netNoWifi:"No Wi-Fi",simNet:"Network",
- wf_wrong_password:"Wrong password",wf_not_found:"There is no such network nearby",wf_timeout:"The network did not answer",wf_failed:"Could not connect",
+ wf_wrong_password:"Wrong password",wf_timeout:"The network did not answer",wf_failed:"Could not connect",
  wf_bad_ssid:"Enter the name of the network",wf_bad_password:"The password must be 8 to 63 characters",wf_busy:"Already connecting, wait",wf_unavailable:"Wi-Fi cannot be set up on this device",wf_bad_input:"Enter the name of the network",
  e_angry:"Angry",e_bad:"Smirk",e_happy:"Happy",e_sad:"Sad",e_scared:"Scared",e_surprised:"Surprised",e_sleepy:"Sleepy",e_love:"Love",e_evil:"Evil"},
 ru:{offline:"Нет связи с протогеном. Пробую снова…",simulator:"симулятор",waiting:"жду картинку…",
@@ -434,12 +447,16 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  simSound:"Звук",sndSilence:"Тишина",sndSpeech:"Речь",sndMusic:"Музыка",sndManual:"Постоянный",simLevel:"Громкость",
  simGestures:"Жесты",gNod:"Кивок",gShake:"Мотание головой",gPet:"Погладить",gBoop:"Тык в нос",gKnock:"Два стука",
  simTime:"Время",simPause:"Пауза",simLink:"Датчики на связи",simLinkHint:"выключите, чтобы увидеть экран «нет датчиков»",
- wfNet:"Сеть",wfPass:"Пароль",wfConnect:"Подключить",wfConnecting:"Подключаюсь…",wfDone:"Подключено",
+ wfNet:"Сеть",wfSave:"Сохранить на потом",wfSaved:"Сохранённые сети",wfAdded:"Сохранено: протоген подключится, когда сеть будет рядом",
+ wfForgetQ:"Забыть эту сеть?",wfNone:"пока нет",wf_active:"Это сеть, к которой протоген подключён сейчас: сначала подключите другую",wf_not_found:"Такой сети рядом нет",
+ updSetupHint:"Эта копия установлена вручную. Один раз подключите её к репозиторию — дальше обновления будут приходить оттуда. Для приватного репозитория вставьте токен доступа (GitHub: Settings → Developer settings → Fine-grained token, право Contents: только чтение).",
+ updRepo:"Репозиторий",updToken:"Токен",updConnect:"Подключить обновления",updConnecting:"Скачиваю репозиторий…",
+ upd_bad_url:"Адрес должен быть вида https://github.com/имя/репозиторий.git",upd_bad_token:"Это не похоже на токен",upd_already:"Обновления уже подключены",upd_busy:"Что-то уже выполняется, подождите",wfPass:"Пароль",wfConnect:"Подключить",wfConnecting:"Подключаюсь…",wfDone:"Подключено",
  wfHint:"Wi-Fi с интернетом нужен протогену только для обновлений. Если переведёте его в другую сеть, подключите к ней и телефон и откройте эту страницу заново.",
  wfOnline:"Подключён к",wfCable:"Подключён кабелем",wfInternetOk:"интернет есть",wfSearching:"Ищу сети…",wfFound:"найдено сетей",
  wfUnavailable:"На этом устройстве Wi-Fi нельзя настроить со страницы.",
  net_no_wifi:"Подключите Wi-Fi",net_no_internet:"Нет доступа к интернету",netOnline:"В сети",netNoInternet:"Нет интернета",netNoWifi:"Нет Wi-Fi",simNet:"Сеть",
- wf_wrong_password:"Неверный пароль",wf_not_found:"Такой сети рядом нет",wf_timeout:"Сеть не ответила",wf_failed:"Не удалось подключиться",
+ wf_wrong_password:"Неверный пароль",wf_timeout:"Сеть не ответила",wf_failed:"Не удалось подключиться",
  wf_bad_ssid:"Введите название сети",wf_bad_password:"Пароль должен быть от 8 до 63 символов",wf_busy:"Уже подключаюсь, подождите",wf_unavailable:"На этом устройстве Wi-Fi не настраивается",wf_bad_input:"Введите название сети",
  e_angry:"Злой",e_bad:"Ухмылка",e_happy:"Радость",e_sad:"Грусть",e_scared:"Испуг",e_surprised:"Удивление",e_sleepy:"Сонный",e_love:"Любовь",e_evil:"Злодей"}
 };
@@ -503,7 +520,8 @@ function showTab() {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + tab));
   buildNav(); window.scrollTo(0, 0);
   if (tab === "ears") loadEars();
-  if (tab === "system") { loadVersion(); loadWifi(); }
+  if (tab === "system") loadVersion();
+  if (tab === "settings") { loadWifi(); loadSaved(); }
   if (tab === "sim") loadSim();
 }
 
@@ -700,13 +718,18 @@ $("restart").onclick = () => ask(t("restartQ"), async () => { const j = await ap
 $("reboot").onclick = () => ask(t("rebootQ"), async () => { const j = await api("/api/system/reboot", {}); toast(j.ok ? t("done") : t("error") + ": " + j.error); });
 async function loadVersion() {
   try { const v = await api("/api/system/version");
+    $("updSetup").style.display = v.repo ? "none" : "";
+    $("updButtons").style.display = v.repo ? "" : "none";
+    if (!v.repo && !$("updUrl").value) $("updUrl").value = v.default_repo || "";
+    $("updTokRow").style.display = v.token_builtin ? "none" : "";
     $("ver").textContent = v.repo ? t("version") + ": " + (v.version || v.commit) + (v.date ? " · " + v.date : "") + (v.subject ? " · " + v.subject : "") + (v.modified ? " · " + t("modified") : "")
       : (v.release ? t("version") + ": " + v.release : t("verUnknown")); } catch (e) {}
 }
 // "no Wi-Fi" and "no internet" in the user's language, and show where to fix it
 function netError(j) {
   if (!j.reason) return j.error;
-  loadWifi(); if (j.reason === "no_wifi") $("cardWifi").scrollIntoView({ behavior: "smooth", block: "center" });
+  if (j.reason === "no_wifi") { tab = "settings"; showTab(); setTimeout(() => $("cardWifi").scrollIntoView({ behavior: "smooth", block: "start" }), 100); }
+  else loadWifi();
   return t("net_" + j.reason);
 }
 async function loadWifi() {
@@ -724,6 +747,34 @@ $("wfScan").onclick = async () => {
     j.networks.forEach(n => { const o = el("option"); o.value = n.ssid; o.label = n.signal + "%" + (n.secure ? " 🔒" : ""); list.appendChild(o); });
     await loadWifi(); toast(t("wfFound") + ": " + j.networks.length); $("wfSsid").focus(); } catch (e) {}
 };
+async function loadSaved() {
+  let j; try { j = await api("/api/wifi/saved"); } catch (e) { return; }
+  const box = $("wfSavedList"); box.innerHTML = "";
+  if (!j.networks.length) { box.textContent = t("wfNone"); return; }
+  j.networks.forEach(n => {
+    const r = el("div", "row"); r.appendChild(el("span", "lab", (n.active ? "● " : "") + n.ssid));
+    const b = el("button", "btn danger", "✕"); b.disabled = n.active;
+    b.onclick = () => ask(t("wfForgetQ") + " " + n.ssid, async () => { const x = await api("/api/wifi/forget", { ssid: n.ssid }); if (!x.ok) toast(t("wf_" + x.reason)); loadSaved(); });
+    r.appendChild(b); box.appendChild(r);
+  });
+}
+$("wfAdd").onclick = async () => {
+  let j; try { j = await api("/api/wifi/add", { ssid: $("wfSsid").value.trim(), password: $("wfPw").value }); } catch (e) { return; }
+  toast(j.ok ? t("wfAdded") : t("wf_" + j.reason)); if (j.ok) { $("wfPw").value = ""; loadSaved(); }
+};
+$("updConnect").onclick = async () => {
+  let j; try { j = await api("/api/system/update/setup", { url: $("updUrl").value.trim(), token: $("updTok").value.trim() }); } catch (e) { return; }
+  if (!j.ok) { updMsg("❌ " + (j.reason && t("upd_" + j.reason) !== "upd_" + j.reason ? t("upd_" + j.reason) : netError(j))); return; }
+  $("updTok").value = ""; updMsg("⏳ " + t("updConnecting"));
+  const t0 = Date.now();
+  const poll = async () => {
+    let st = null; try { st = await (await fetch("/api/system/update/status", { cache: "no-store" })).json(); } catch (e) {}
+    if (st && (st.state === "done" || st.state === "error")) { updMsg((st.state === "done" ? "✓ " : "❌ ") + st.message); loadVersion(); return; }
+    if (Date.now() - t0 > 600000) { updMsg("❌ " + t("updNoAnswer")); return; }
+    setTimeout(poll, 2000);
+  };
+  setTimeout(poll, 2000);
+};
 $("wfShow").onclick = () => { $("wfPw").type = $("wfPw").type === "password" ? "text" : "password"; };
 $("wfGo").onclick = async () => {
   let j; try { j = await api("/api/wifi/connect", { ssid: $("wfSsid").value.trim(), password: $("wfPw").value }); } catch (e) { return; }
@@ -733,7 +784,7 @@ $("wfGo").onclick = async () => {
   const poll = async () => {
     let w = null; try { w = await (await fetch("/api/wifi", { cache: "no-store" })).json(); } catch (e) {}
     if (w && w.job.state !== "connecting") {
-      $("wfPw").value = ""; await loadWifi();
+      $("wfPw").value = ""; await loadWifi(); loadSaved();
       toast(w.job.state === "ok" ? t("wfDone") : t("wf_" + (w.job.reason || "failed"))); return;
     }
     if (Date.now() - t0 > 70000) { loadWifi(); return; }
