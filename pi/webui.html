@@ -396,7 +396,7 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  updRepo:"Repository",updToken:"Token",updConnect:"Connect updates",updConnecting:"Downloading the repository…",
  upd_bad_url:"The address must look like https://github.com/name/repo.git",upd_bad_token:"This does not look like a token",upd_already:"Updates are already connected",upd_busy:"Something is already running, wait",wfPass:"Password",wfConnect:"Connect",wfConnecting:"Connecting…",wfDone:"Connected",
  wfHint:"The protogen needs Wi-Fi with internet only for updates. If you move it to another network, connect your phone to that network too and open this page again.",
- wfOnline:"Connected to",wfCable:"Connected by cable",wfInternetOk:"internet works",wfSearching:"Looking for networks…",wfFound:"networks found",
+ wfOnline:"Connected to",wfHotspot:"The protogen is sharing its own network",wfHotspotHint:"Pick your home Wi-Fi here. Then switch the phone to the same network and open proto.local.",wfCable:"Connected by cable",wfInternetOk:"internet works",wfSearching:"Looking for networks…",wfFound:"networks found",
  wfUnavailable:"Wi-Fi cannot be set up from this page on this device.",
  net_no_wifi:"Connect Wi-Fi",net_no_internet:"No access to the internet",netOnline:"Online",netNoInternet:"No internet",netNoWifi:"No Wi-Fi",simNet:"Network",
  wf_wrong_password:"Wrong password",wf_timeout:"The network did not answer",wf_failed:"Could not connect",
@@ -453,7 +453,7 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  updRepo:"Репозиторий",updToken:"Токен",updConnect:"Подключить обновления",updConnecting:"Скачиваю репозиторий…",
  upd_bad_url:"Адрес должен быть вида https://github.com/имя/репозиторий.git",upd_bad_token:"Это не похоже на токен",upd_already:"Обновления уже подключены",upd_busy:"Что-то уже выполняется, подождите",wfPass:"Пароль",wfConnect:"Подключить",wfConnecting:"Подключаюсь…",wfDone:"Подключено",
  wfHint:"Wi-Fi с интернетом нужен протогену только для обновлений. Если переведёте его в другую сеть, подключите к ней и телефон и откройте эту страницу заново.",
- wfOnline:"Подключён к",wfCable:"Подключён кабелем",wfInternetOk:"интернет есть",wfSearching:"Ищу сети…",wfFound:"найдено сетей",
+ wfOnline:"Подключён к",wfHotspot:"Протоген раздаёт свою сеть",wfHotspotHint:"Выберите здесь домашний Wi-Fi. Потом подключите телефон к той же сети и откройте proto.local.",wfCable:"Подключён кабелем",wfInternetOk:"интернет есть",wfSearching:"Ищу сети…",wfFound:"найдено сетей",
  wfUnavailable:"На этом устройстве Wi-Fi нельзя настроить со страницы.",
  net_no_wifi:"Подключите Wi-Fi",net_no_internet:"Нет доступа к интернету",netOnline:"В сети",netNoInternet:"Нет интернета",netNoWifi:"Нет Wi-Fi",simNet:"Сеть",
  wf_wrong_password:"Неверный пароль",wf_timeout:"Сеть не ответила",wf_failed:"Не удалось подключиться",
@@ -736,6 +736,7 @@ async function loadWifi() {
   let w; try { w = await api("/api/wifi"); } catch (e) { return null; }
   const x = $("wfState");
   if (!w.available) x.textContent = t("wfUnavailable");
+  else if (w.link === "hotspot") x.textContent = "📡 " + t("wfHotspot") + " «" + w.ssid + "». " + t("wfHotspotHint");
   else if (w.state === "no_wifi") x.textContent = "⚠️ " + t("net_no_wifi");
   else x.textContent = (w.internet ? "✓ " : "⚠️ ") + (w.link === "ethernet" ? t("wfCable") : t("wfOnline") + " «" + (w.ssid || "?") + "»") + " · " + (w.internet ? t("wfInternetOk") : t("net_no_internet"));
   $("wfGo").disabled = !w.available || w.job.state === "connecting";

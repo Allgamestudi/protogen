@@ -10,7 +10,7 @@ import threading
 from urllib.parse import parse_qs
 
 _local = threading.local()
-_STATUS = {200: "OK", 204: "No Content", 400: "Bad Request", 404: "Not Found",
+_STATUS = {200: "OK", 204: "No Content", 302: "Found", 400: "Bad Request", 404: "Not Found",
            405: "Method Not Allowed", 500: "Internal Server Error"}
 
 
@@ -130,6 +130,9 @@ class Flask:
                 self.routes.setdefault(path, {})[m.upper()] = view
             return view
         return register
+
+    def add_url_rule(self, path, endpoint=None, view_func=None, methods=("GET",)):
+        self.route(path, methods)(view_func)
 
     def _dispatch(self, environ):
         views = self.routes.get(environ.get("PATH_INFO", "/"))

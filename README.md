@@ -249,3 +249,11 @@ the previous network. "Check for updates" and "Install" first look at the networ
 "Connect Wi-Fi" (no network) or "No access to the internet" (network, but the update server
 cannot be reached). In the simulator the network is pretended: Simulator tab, "Network".
 Tests: `tests/test_wifi.py`.
+
+**Own network.** With no known network and no cable for a minute after power-on, the
+protogen opens its own Wi-Fi, `Protogen` / `protogen` (`config.HOTSPOT_*`, `pi/hotspot.py`).
+The page is at http://10.42.0.1 or http://proto.local; every name points to the Pi, so
+a phone that joins opens the page as a "sign in to the network" screen. Pick the home
+network on the page, and the hotspot goes away. With nobody on it for 5 minutes it drops
+for 45 seconds to look for a known network, and comes back if none is around.
+Tests: `tests/test_hotspot.py`.

@@ -58,6 +58,17 @@ def index():
     return Response(_page("webui.html"), mimetype="text/html")
 
 
+# Phones check these addresses to see whether a network has internet. On our own Wi-Fi
+# every name points here, so they get sent to the page: the "sign in" screen opens it.
+def _to_page():
+    return Response("", status=302, headers={"Location": "http://10.42.0.1/"})
+
+
+for _path in ("/generate_204", "/gen_204", "/hotspot-detect.html", "/library/test/success.html",
+              "/ncsi.txt", "/connecttest.txt", "/redirect", "/canonical.html", "/success.txt"):
+    app.add_url_rule(_path, "portal" + _path.replace("/", "_").replace(".", "_"), _to_page)
+
+
 @app.route("/classic")
 def index_classic():
     return Response(_page("webui_classic.html"), mimetype="text/html")

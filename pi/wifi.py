@@ -16,6 +16,7 @@ import time
 PROBES = (("github.com", 443), ("1.1.1.1", 443))
 PROBE_TIMEOUT = 3.0
 CONNECT_TIMEOUT = 40            # seconds nmcli may take to join
+AP_CON = "protogen-ap"          # the profile of our own network (hotspot.py)
 
 # Set by the simulator: {"net": "online" | "no_internet" | "no_wifi", "ssid": "..."}.
 fake = None
@@ -106,6 +107,10 @@ def status(check_internet=True):
                 "state": "online" if online else "no_internet", "job": job}
     ok, out, _ = _nmcli("-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device")
     link, ssid = parse_devices(out) if ok else ("unknown", None)
+    if link == "wifi" and ssid == AP_CON:              # we are the network: nobody to reach the internet through
+        import config
+        return {"available": True, "link": "hotspot", "ssid": getattr(config, "HOTSPOT_SSID", "Protogen"),
+                "internet": False, "state": "no_wifi", "job": job}
     if link == "none":
         return {"available": True, "link": link, "ssid": None, "internet": False,
                 "state": "no_wifi", "job": job}
@@ -213,7 +218,7 @@ def saved():
     nets = []
     for line in out.splitlines() if ok else []:
         f = split_terse(line)
-        if len(f) >= 3 and f[1] in ("802-11-wireless", "wifi"):
+        if len(f) >= 3 and f[1] in ("802-11-wireless", "wifi") and f[0] != AP_CON:
             nets.append({"ssid": f[0], "active": f[2] == "yes"})
     return nets
 
