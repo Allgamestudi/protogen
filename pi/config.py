@@ -32,6 +32,8 @@ PEAK_GRAV   = 2.2                # peak-hold drop acceleration
 WEB_PORT    = 5001
 WEB_PORT_PLAIN = 80              # second port, for http://proto.local without ":5001"; 0 = off
 UPDATE_REPO = "https://github.com/Allgamestudi/protogen.git"   # offered on the page for updates
+KATANA_SYNC = True               # the katana prop switches the face while its blade is lit
+KATANA_EMOTION = ""              # the face it switches to; "" = the first emotion in the list
 HOTSPOT = True                   # no known network after a minute: open our own one
 HOTSPOT_SSID = "Protogen"
 HOTSPOT_PASSWORD = "protogen"    # 8 characters or more

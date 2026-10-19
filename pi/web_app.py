@@ -335,6 +335,39 @@ def api_set():
     return jsonify({"ok": True})
 
 
+# The katana prop reports its blade here. While the blade is lit the face shows the first
+# emotion in the katana's colour; when it goes out, the face comes back as it was.
+_katana = {"active": False, "saved": None}
+
+
+def _good_colour(c):
+    return isinstance(c, list) and len(c) == 3 and all(isinstance(v, int) and 0 <= v <= 255 for v in c)
+
+
+@app.route("/api/katana", methods=["GET", "POST"])
+def api_katana():
+    if request.method == "GET":
+        return jsonify({"active": _katana["active"], "sync": bool(getattr(config, "KATANA_SYNC", True))})
+    if not getattr(config, "KATANA_SYNC", True):
+        return jsonify({"ok": False, "reason": "off", "active": False})
+    d = request.get_json(silent=True) or {}
+    with lock:
+        if d.get("on"):
+            if not _katana["active"]:
+                _katana["saved"] = {k: (list(state[k]) if isinstance(state[k], list) else state[k])
+                                    for k in ("mode", "emotion", "effect", "color")}
+                _katana["active"] = True
+                state["mode"], state["effect"] = "emotion", "solid"
+                state["emotion"] = getattr(config, "KATANA_EMOTION", "") or emotions.list_emotions()[0]["id"]
+            if _good_colour(d.get("color")):
+                state["color"] = list(d["color"])
+        elif _katana["active"]:
+            state.update(_katana["saved"] or {})
+            _katana["active"], _katana["saved"] = False, None
+    mark_ui_dirty()
+    return jsonify({"ok": True, "active": _katana["active"]})
+
+
 @app.route("/api/dino/jump", methods=["POST"])
 def api_dino_jump():
     with lock:
