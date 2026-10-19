@@ -9,6 +9,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pi"))
 import test_web                                                     # noqa: E402,F401  (sets up the fakes)
 import emotions                                                     # noqa: E402
+import katana_link                                                  # noqa: E402
 import web_app                                                      # noqa: E402
 from state import state, lock                                       # noqa: E402
 
@@ -49,6 +50,17 @@ class KatanaTests(unittest.TestCase):
 
     def test_status(self):
         self.assertEqual(call("GET", "/api/katana")["active"], False)
+
+
+class LinkTests(unittest.TestCase):
+    def test_reads_the_katana_state(self):
+        self.assertEqual(katana_link.parse({"on": 1, "colour": "#FF8000", "protoSync": 1}), (True, [255, 128, 0]))
+
+    def test_sync_switched_off_on_the_katana(self):
+        self.assertEqual(katana_link.parse({"on": 1, "colour": "#FF0000", "protoSync": 0})[0], False)
+
+    def test_bad_colour(self):
+        self.assertEqual(katana_link.parse({"on": 1, "colour": "red"}), (True, None))
 
 
 if __name__ == "__main__":

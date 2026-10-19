@@ -344,6 +344,28 @@ def _good_colour(c):
     return isinstance(c, list) and len(c) == 3 and all(isinstance(v, int) and 0 <= v <= 255 for v in c)
 
 
+def katana_apply(on, colour=None):
+    """The blade is lit (on) or not; colour = [r, g, b] or None. -> whether the face follows it now."""
+    with lock:
+        if on:
+            if not _katana["active"]:
+                _katana["saved"] = {k: (list(state[k]) if isinstance(state[k], list) else state[k])
+                                    for k in ("mode", "emotion", "effect", "color")}
+                _katana["active"] = True
+                state["mode"], state["effect"] = "emotion", "solid"
+                state["emotion"] = getattr(config, "KATANA_EMOTION", "") or emotions.list_emotions()[0]["id"]
+                mark_ui_dirty()
+            if _good_colour(colour) and state["color"] != list(colour):
+                state["color"] = list(colour)
+                mark_ui_dirty()
+            return True
+        if _katana["active"]:
+            state.update(_katana["saved"] or {})
+            _katana["active"], _katana["saved"] = False, None
+            mark_ui_dirty()
+        return False
+
+
 @app.route("/api/katana", methods=["GET", "POST"])
 def api_katana():
     if request.method == "GET":
@@ -351,21 +373,7 @@ def api_katana():
     if not getattr(config, "KATANA_SYNC", True):
         return jsonify({"ok": False, "reason": "off", "active": False})
     d = request.get_json(silent=True) or {}
-    with lock:
-        if d.get("on"):
-            if not _katana["active"]:
-                _katana["saved"] = {k: (list(state[k]) if isinstance(state[k], list) else state[k])
-                                    for k in ("mode", "emotion", "effect", "color")}
-                _katana["active"] = True
-                state["mode"], state["effect"] = "emotion", "solid"
-                state["emotion"] = getattr(config, "KATANA_EMOTION", "") or emotions.list_emotions()[0]["id"]
-            if _good_colour(d.get("color")):
-                state["color"] = list(d["color"])
-        elif _katana["active"]:
-            state.update(_katana["saved"] or {})
-            _katana["active"], _katana["saved"] = False, None
-    mark_ui_dirty()
-    return jsonify({"ok": True, "active": _katana["active"]})
+    return jsonify({"ok": True, "active": katana_apply(bool(d.get("on")), d.get("color"))})
 
 
 @app.route("/api/dino/jump", methods=["POST"])

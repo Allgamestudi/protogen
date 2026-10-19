@@ -13,6 +13,7 @@ import remote
 import ears_effect
 import hostname_guard
 import hotspot
+import katana_link
 import web_app
 from state import stop_event, flush_all
 
@@ -20,6 +21,7 @@ from state import stop_event, flush_all
 def main():
     hostname_guard.start()          # keeps the address http://proto.local
     hotspot.start()                 # own Wi-Fi when no known network is around
+    katana_link.start()             # the face follows the katana prop's blade
     serial_proto.start()
     remote.start()
     ears_effect.start()
