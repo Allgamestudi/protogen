@@ -75,6 +75,23 @@ input[type=color]{width:46px;height:38px;border:1px solid var(--line);border-rad
 .emo.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--card2))}
 .emo.shown{box-shadow:inset 0 0 0 1px var(--warn)}
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
+/* simple mode: big buttons only, for anyone */
+body.simple nav,body.simple .tab,body.simple .statusrow{display:none!important}
+body.simple{padding-bottom:24px}
+body:not(.simple) #simple{display:none}
+#simple .card h2{font-size:1.15em}
+.semos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.semo{background:var(--card2);border:3px solid transparent;border-radius:16px;padding:14px 4px 10px;cursor:pointer;text-align:center;color:var(--text)}
+.semo .e{font-size:2.6em;line-height:1.1;display:block}
+.semo .n{font-size:1em;display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.semo.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--card2))}
+.scols{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.scols button{aspect-ratio:1;width:100%;border-radius:50%;border:3px solid var(--line);cursor:pointer;font-size:1.7em;padding:0}
+.scols button.on{border-color:#fff;box-shadow:0 0 0 3px var(--accent)}
+.sbig{display:block;width:100%;padding:16px;font-size:1.25em;font-weight:600;border-radius:16px;border:0;background:var(--card2);color:var(--text);cursor:pointer}
+.sbig.on{background:var(--accent);color:#fff}
+#uiMode{white-space:nowrap}
+.brow{display:flex;align-items:center;gap:8px}.brow input{flex:1}.brow .ic{font-size:1.3em}
 .swatches button{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
 .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .q{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:12px;padding:9px 10px}
@@ -130,6 +147,7 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
     <span class="dot" id="link" title=""></span>
     <span class="name">Protogen</span>
     <span class="chip" id="simBadge" style="display:none" data-t="simulator"></span>
+    <button class="chip" id="uiMode"></button>
     <button class="chip" id="lang">RU</button>
   </header>
 
@@ -146,8 +164,16 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
       <span class="grow"></span>
       <span class="chip">☀ <span id="brV">–</span></span>
     </div>
-    <div class="row" style="margin:6px 0 0"><input type="range" id="bright" min="5" max="100" step="1" aria-label="brightness"></div>
+    <div class="row brow" style="margin:6px 0 0"><span class="ic">🔅</span><input type="range" id="bright" min="5" max="100" step="1" aria-label="brightness"><span class="ic">🔆</span></div>
   </section>
+
+  <!-- Simple mode: the face, its colour, music -->
+  <div id="simple">
+    <div class="card"><h2 data-t="sFace"></h2><div class="semos" id="sEmos"></div></div>
+    <div class="card"><h2 data-t="sColour"></h2><div class="scols" id="sCols"></div></div>
+    <div class="card"><button class="sbig" id="sMusic"></button></div>
+    <p class="hint" data-t="sHint" style="text-align:center"></p>
+  </div>
 
   <!-- Face -->
   <div class="tab on" id="tab-face">
@@ -378,6 +404,7 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  earh_off:"The ear lights are off.",earh_solid:"All LEDs in the chosen colour.",earh_rainbow:"A rainbow runs round the ring.",
  earh_spectrum:"The ring shows the sound, like an equaliser.",earh_pulse:"The ring breathes in the chosen colour and flashes on the beat.",
  earh_face:"The same colour as the face.",earh_wheel:"A dot runs round the ring.",
+ modeSimple:"Simple",modeAdvanced:"Advanced",sFace:"Pick a face",sColour:"Pick a colour",sMusic:"Dance to the music",sMusicStop:"Stop dancing",sRainbow:"Rainbow",sHint:"More settings: the ⚙️ Advanced button at the top.",
  search:"Find a setting…",all:"All settings",simple:"Main only",settingsHint:"Tap the name of a setting to read what it does.",
  resetAll:"Reset all settings",resetAllQ:"Return every setting to its factory value?",default:"Factory value",reset:"reset",on:"on",off:"off",
  nothing:"Nothing found.",keepFace:"do not change",
@@ -437,6 +464,7 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  earh_off:"Подсветка ушей выключена.",earh_solid:"Все светодиоды выбранным цветом.",earh_rainbow:"Радуга бежит по кольцу.",
  earh_spectrum:"Кольцо показывает звук, как эквалайзер.",earh_pulse:"Кольцо «дышит» выбранным цветом и вспыхивает на бит.",
  earh_face:"Тот же цвет, что у лица.",earh_wheel:"Точка бежит по кольцу.",
+ modeSimple:"Простой",modeAdvanced:"Расширенный",sFace:"Выбери лицо",sColour:"Выбери цвет",sMusic:"Танцевать под музыку",sMusicStop:"Хватит танцевать",sRainbow:"Радуга",sHint:"Больше настроек — кнопка ⚙️ Расширенный вверху.",
  search:"Найти настройку…",all:"Все настройки",simple:"Только основные",settingsHint:"Нажмите на название настройки, чтобы прочитать, что она делает.",
  resetAll:"Сбросить все настройки",resetAllQ:"Вернуть все настройки к заводским значениям?",default:"Заводское значение",reset:"сбросить",on:"вкл",off:"выкл",
  nothing:"Ничего не найдено.",keepFace:"не менять",
@@ -547,7 +575,7 @@ function applyTexts() {
   document.querySelectorAll("[data-tp]").forEach(x => { x.placeholder = t(x.dataset.tp); });
   $("lang").textContent = lang === "en" ? "RU" : "EN";
   $("allBtn").textContent = showAll ? t("simple") : t("all");
-  buildNav(); buildStatic(); buildEmotions(); buildQuick(); buildGroups(); buildTextSets(); if (S) render(S);
+  applyUiMode(); buildNav(); buildStatic(); buildEmotions(); buildQuick(); buildGroups(); buildTextSets(); if (S) render(S);
 }
 $("lang").onclick = () => { lang = lang === "en" ? "ru" : "en"; try { localStorage.setItem("pg_lang", lang); } catch (e) {} applyTexts(); if (tab === "ears") loadEars(); if (tab === "sim") loadSim(); };
 
@@ -591,8 +619,54 @@ function buildEmotions() {
     box.appendChild(b);
   });
   if (S) markEmotion(S.emotion, S.emotion_shown);
+  buildSimple();
 }
 function markEmotion(id, shown) { $("emos").querySelectorAll(".emo").forEach(b => { b.classList.toggle("on", b.dataset.id === id); b.classList.toggle("shown", !!shown && shown !== id && b.dataset.id === shown); }); }
+// simple mode
+let simple = true;
+try { simple = localStorage.getItem("pg_ui") !== "advanced"; } catch (e) {}
+function applyUiMode() {
+  document.body.classList.toggle("simple", simple);
+  $("uiMode").textContent = simple ? "⚙️ " + t("modeAdvanced") : "🙂 " + t("modeSimple");
+  window.scrollTo(0, 0);
+}
+$("uiMode").onclick = () => {
+  simple = !simple; try { localStorage.setItem("pg_ui", simple ? "simple" : "advanced"); } catch (e) {}
+  applyUiMode(); if (!simple) showTab(); if (S) render(S);
+};
+function buildSimple() {
+  const box = $("sEmos"); box.innerHTML = "";
+  emotions.forEach(e => {
+    const b = el("button", "semo"); b.dataset.id = e.id;
+    b.appendChild(el("span", "e", e.emoji)); b.appendChild(el("span", "n", emoName(e)));
+    b.onclick = () => { touch("emotion"); touch("mode"); setState({ emotion: e.id, mode: "emotion" }); markSimple({ emotion: e.id, mode: "emotion", effect: S && S.effect, color: S && S.color }); };
+    box.appendChild(b);
+  });
+  const cols = $("sCols"); cols.innerHTML = "";
+  SWATCHES.forEach(c => {
+    const b = el("button"); b.style.background = c; b.dataset.c = c; b.setAttribute("aria-label", c);
+    b.onclick = () => { touch("color"); touch("effect"); setState({ color: rgb(c), effect: "solid" }); $("color").value = c; accent(rgb(c)); markSimple(Object.assign({}, S, { color: rgb(c), effect: "solid" })); };
+    cols.appendChild(b);
+  });
+  const rb = el("button", "", "🌈"); rb.dataset.c = "rainbow"; rb.title = t("sRainbow"); rb.setAttribute("aria-label", t("sRainbow"));
+  rb.style.background = "conic-gradient(#ff1e1e,#ffd400,#3dff5c,#00e5ff,#2979ff,#b14dff,#ff1e1e)";
+  rb.onclick = () => { touch("effect"); setState({ effect: "rainbow" }); markSimple(Object.assign({}, S, { effect: "rainbow" })); };
+  cols.appendChild(rb);
+  if (S) markSimple(S);
+}
+function markSimple(s) {
+  if (!s) return;
+  $("sEmos").querySelectorAll(".semo").forEach(b => b.classList.toggle("on", s.mode === "emotion" && b.dataset.id === s.emotion));
+  const cur = s.effect === "rainbow" ? "rainbow" : (s.effect === "solid" && s.color ? hex(s.color) : "");
+  $("sCols").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.c === cur));
+  const dancing = s.mode === "music";
+  $("sMusic").classList.toggle("on", dancing);
+  $("sMusic").textContent = dancing ? "⏹ " + t("sMusicStop") : "🎵 " + t("sMusic");
+}
+$("sMusic").onclick = () => {
+  const on = !(S && S.mode === "music"); touch("mode"); setState({ mode: on ? "music" : "emotion" });
+  markSimple(Object.assign({}, S, { mode: on ? "music" : "emotion" }));
+};
 $("winkL").onclick = () => api("/api/set", { wink_request: "left" }).catch(() => {});
 $("winkR").onclick = () => api("/api/set", { wink_request: "right" }).catch(() => {});
 
@@ -908,6 +982,7 @@ function render(s) {
   if (quiet("emotion")) markEmotion(s.emotion, s.mode === "emotion" ? s.emotion_shown : null);
   if (quiet("effect")) { markSeg($("effects"), s.effect); lookCards(s.effect); markSeg($("eqKind"), s.effect === "spectrogram" ? "spectrogram" : "bars"); }
   if (quiet("mode")) markModes(s.mode);
+  if (simple && quiet("emotion") && quiet("mode") && quiet("color") && quiet("effect")) markSimple(s);
   if (quiet("color") && document.activeElement !== $("color")) { $("color").value = hex(s.color); accent(s.color); }
   if (quiet("grad")) { const g = s.gradient_colors || [[255, 0, 0], [0, 0, 255]]; $("g1").value = hex(g[0]); $("g2").value = hex(g[1]); $("gAngle").value = s.gradient_angle || 0; $("gAngleV").textContent = (s.gradient_angle || 0) + "°"; }
   if (quiet("mirror")) $("mirror").classList.toggle("on", !!s.mirror);
