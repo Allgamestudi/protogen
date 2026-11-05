@@ -93,6 +93,15 @@ body:not(.simple) #simple{display:none}
 #uiMode{white-space:nowrap}
 .srow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 2px;font-size:1.08em;border-bottom:1px solid var(--line)}
 .srow:last-child{border-bottom:0}
+.snet{display:flex;align-items:center;gap:10px;width:100%;padding:12px 10px;margin:0 0 8px;border-radius:12px;border:2px solid transparent;background:var(--card2);color:var(--text);font-size:1.05em;cursor:pointer;text-align:left}
+.snet .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snet.on{border-color:var(--accent)}.snet.cur{border-color:var(--ok)}
+.wsig{width:28px;height:24px;flex:none;color:var(--text)}.wsig path,.wsig circle{transition:stroke .2s,fill .2s}
+.snet.cur .wsig{color:var(--ok)}.snet .lock{width:16px;height:18px;flex:none;color:var(--dim)}
+.hico{width:1.25em;height:1.25em;vertical-align:-.25em;margin-right:4px;color:var(--accent)}
+.sform{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}
+.sform input{width:100%;font-size:1.05em;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.sform .r{display:flex;gap:8px}.sform .r input{flex:1;min-width:0}
 .brow{display:flex;align-items:center;gap:8px}.brow input{flex:1}.brow .ic{font-size:1.3em}
 .swatches button{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
 .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -177,6 +186,27 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
     <div class="card"><h2 data-t="sAbilities"></h2><div id="sFeats"></div>
       <button class="sbig" id="sCal" style="margin-top:12px" data-t="sCal"></button>
       <p class="hint" id="sCalMsg" style="text-align:center;margin:8px 0 0"></p></div>
+    <div class="card" id="sWifiCard"><h2><svg class="hico" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M1.9 6.9a14.3 14.3 0 0 1 20.2 0"/><path d="M5.2 10.2a9.7 9.7 0 0 1 13.6 0"/><path d="M8.5 13.5a5 5 0 0 1 7 0"/><circle cx="12" cy="17" r="1.9" fill="currentColor" stroke="none"/></svg>Wi-Fi</h2>
+      <p class="hint" id="sWfState" style="margin-top:0"></p>
+      <div id="sNets"></div>
+      <div class="sform" id="sWfForm" style="display:none">
+        <div class="r"><input type="password" id="sWfPw" autocomplete="off" autocapitalize="off"><button class="btn" id="sWfEye">👁</button></div>
+        <button class="sbig on" id="sWfGo"></button>
+      </div>
+      <p class="hint" id="sWfMsg" style="text-align:center;margin:6px 0 0"></p>
+    </div>
+    <div class="card"><h2><svg class="hico" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="2" fill="currentColor"/><path d="M8.5 21 12 10l3.5 11M9.6 17.5h4.8"/><path d="M8.3 4.3a5.2 5.2 0 0 0 0 7.4M15.7 4.3a5.2 5.2 0 0 1 0 7.4"/><path d="M5.2 1.5a9.4 9.4 0 0 0 0 13M18.8 1.5a9.4 9.4 0 0 1 0 13"/></svg><span data-t="hsTitle"></span></h2>
+      <div class="sform">
+        <span class="hint" data-t="sHsName"></span>
+        <input type="text" id="sHsSsid" maxlength="32" autocomplete="off" autocapitalize="off">
+        <span class="hint" data-t="sHsPass"></span>
+        <input type="text" id="sHsPw" maxlength="63" autocomplete="off" autocapitalize="off">
+        <div class="r"><button class="sbig on" id="sHsSave" data-t="hsSave"></button><button class="sbig" id="sHsReset" data-t="hsReset"></button></div>
+      </div>
+      <p class="hint" id="sHsMsg" style="text-align:center;margin:0"></p>
+    </div>
+    <div class="card"><button class="sbig" id="sUpd" data-t="sUpd"></button>
+      <p class="hint" id="sUpdMsg" style="text-align:center;margin:8px 0 0;white-space:pre-line"></p></div>
     <p class="hint" data-t="sHint" style="text-align:center"></p>
   </div>
 
@@ -409,6 +439,8 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  earh_off:"The ear lights are off.",earh_solid:"All LEDs in the chosen colour.",earh_rainbow:"A rainbow runs round the ring.",
  earh_spectrum:"The ring shows the sound, like an equaliser.",earh_pulse:"The ring breathes in the chosen colour and flashes on the beat.",
  earh_face:"The same colour as the face.",earh_wheel:"A dot runs round the ring.",
+ sWfPick:"Tap your network:",sWfConnectTo:"Connect to",sWfNoNets:"No networks found yet, still looking…",sWfAfter:"Done. Now connect the phone to the same network and open proto.local (or the address the face shows).",sHsName:"Network name",sHsPass:"Password (8 characters or more)",
+ sUpd:"⬆️ Check for updates and install",sUpdSetup:"Connecting updates (once)…",sUpdFound:"Update found:",
  sAbilities:"What it can do",sfPupils:"Eyes with pupils",sfPeople:"Notice people",sfBoop:"Boop on the nose",sfClap:"Jump at claps",sfVoice:"Emotions from the voice",sfGestures:"Head gestures",
  sCal:"🔄 Calibrate everything",sCalRun:"Calibrating: for 5 seconds keep quiet, do not touch the visor and do not stand in front of it…",sCalDone:"Done",sCalVisor:"visor reflection at",sCalNoVisor:"no visor reflection",
  modeSimple:"Simple",modeAdvanced:"Advanced",sFace:"Pick a face",sColour:"Pick a colour",sMusic:"Dance to the music",sMusicStop:"Stop dancing",sRainbow:"Rainbow",sHint:"More settings: the ⚙️ Advanced button at the top.",
@@ -471,6 +503,8 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  earh_off:"Подсветка ушей выключена.",earh_solid:"Все светодиоды выбранным цветом.",earh_rainbow:"Радуга бежит по кольцу.",
  earh_spectrum:"Кольцо показывает звук, как эквалайзер.",earh_pulse:"Кольцо «дышит» выбранным цветом и вспыхивает на бит.",
  earh_face:"Тот же цвет, что у лица.",earh_wheel:"Точка бежит по кольцу.",
+ sWfPick:"Нажмите на свою сеть:",sWfConnectTo:"Подключить к",sWfNoNets:"Сети пока не найдены, продолжаю искать…",sWfAfter:"Готово. Теперь подключите телефон к той же сети и откройте proto.local (или адрес, который покажет лицо).",sHsName:"Имя сети",sHsPass:"Пароль (не меньше 8 символов)",
+ sUpd:"⬆️ Проверить и обновить",sUpdSetup:"Подключаю обновления (один раз)…",sUpdFound:"Нашлось обновление:",
  sAbilities:"Что умеет протоген",sfPupils:"Глаза со зрачками",sfPeople:"Замечать людей",sfBoop:"Буп в нос",sfClap:"Пугаться хлопков",sfVoice:"Эмоции от голоса",sfGestures:"Жесты головой",
  sCal:"🔄 Откалибровать всё",sCalRun:"Калибрую: 5 секунд тишина, не трогайте визор и не стойте перед ним…",sCalDone:"Готово",sCalVisor:"отражение визора на",sCalNoVisor:"отражения от визора нет",
  modeSimple:"Простой",modeAdvanced:"Расширенный",sFace:"Выбери лицо",sColour:"Выбери цвет",sMusic:"Танцевать под музыку",sMusicStop:"Хватит танцевать",sRainbow:"Радуга",sHint:"Больше настроек — кнопка ⚙️ Расширенный вверху.",
@@ -641,7 +675,7 @@ function applyUiMode() {
 }
 $("uiMode").onclick = () => {
   simple = !simple; try { localStorage.setItem("pg_ui", simple ? "simple" : "advanced"); } catch (e) {}
-  applyUiMode(); if (!simple) showTab(); if (S) render(S);
+  applyUiMode(); if (!simple) showTab(); else { sLoadHotspot(); sWifiState(); sScan(true); } if (S) render(S);
 };
 function buildSimple() {
   const box = $("sEmos"); box.innerHTML = "";
@@ -663,6 +697,7 @@ function buildSimple() {
   cols.appendChild(rb);
   if (S) markSimple(S);
   buildFeats();
+  if (simple) { sLoadHotspot(); sWifiState(); sScan(true); }
 }
 function markSimple(s) {
   if (!s) return;
@@ -702,6 +737,128 @@ $("sCal").onclick = async () => {
     setTimeout(poll, 700);
   };
   setTimeout(poll, 1000);
+};
+// simple mode: Wi-Fi found by itself
+let sNets = [], sPick = null, sScanAt = 0, sScanning = false;
+const SVGNS = "http://www.w3.org/2000/svg";
+function wifiIcon(signal) {            // a Wi-Fi fan: lit arcs show how strong the network is
+  const lvl = signal >= 70 ? 3 : signal >= 45 ? 2 : signal >= 20 ? 1 : 0;
+  const s = document.createElementNS(SVGNS, "svg"); s.setAttribute("viewBox", "0 0 24 20"); s.setAttribute("class", "wsig");
+  s.innerHTML = ["M8.5 13.5a5 5 0 0 1 7 0", "M5.2 10.2a9.7 9.7 0 0 1 13.6 0", "M1.9 6.9a14.3 14.3 0 0 1 20.2 0"]
+    .map((d, i) => `<path d="${d}" fill="none" stroke-width="2.4" stroke-linecap="round" stroke="${i < lvl ? "currentColor" : "var(--line)"}"/>`).join("")
+    + `<circle cx="12" cy="17" r="1.9" fill="currentColor"/>`;
+  s.setAttribute("aria-label", signal + "%"); return s;
+}
+function lockIcon() {
+  const s = document.createElementNS(SVGNS, "svg"); s.setAttribute("viewBox", "0 0 16 18"); s.setAttribute("class", "lock");
+  s.innerHTML = `<path d="M4.5 8V5.5a3.5 3.5 0 0 1 7 0V8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="2" y="8" width="12" height="9" rx="2.2" fill="currentColor"/>`;
+  return s;
+}
+async function sWifiState() {
+  let w; try { w = await api("/api/wifi"); } catch (e) { return null; }
+  const x = $("sWfState");
+  if (!w.available) { x.textContent = t("wfUnavailable"); $("sWifiCard").style.opacity = .6; return w; }
+  if (w.link === "hotspot") x.textContent = "📡 " + t("wfHotspot") + " «" + w.ssid + "». " + t("sWfPick");
+  else if (w.link === "ethernet") x.textContent = "✓ " + t("wfCable");
+  else if (w.state === "no_wifi") x.textContent = "⚠️ " + t("net_no_wifi") + ". " + t("sWfPick");
+  else x.textContent = (w.internet ? "✓ " : "⚠️ ") + t("wfOnline") + " «" + (w.ssid || "?") + "» · " + (w.internet ? t("wfInternetOk") : t("net_no_internet"));
+  return w;
+}
+function sDrawNets() {
+  const box = $("sNets"); box.innerHTML = "";
+  if (!sNets.length) { box.appendChild(el("p", "hint", sScanning ? t("wfSearching") : t("sWfNoNets"))); return; }
+  sNets.forEach(n => {
+    const b = el("button", "snet" + (n.active ? " cur" : "") + (sPick === n.ssid ? " on" : ""));
+    b.appendChild(wifiIcon(n.signal)); b.appendChild(el("span", "nm", (n.active ? "✓ " : "") + n.ssid));
+    if (n.secure) b.appendChild(lockIcon());
+    b.onclick = () => sPickNet(n); box.appendChild(b);
+  });
+}
+function sPickNet(n) {
+  sPick = n.ssid; $("sWfMsg").textContent = ""; sDrawNets();
+  $("sWfForm").style.display = ""; $("sWfPw").value = ""; $("sWfPw").style.display = n.secure ? "" : "none"; $("sWfEye").style.display = n.secure ? "" : "none";
+  $("sWfPw").placeholder = t("wfPass"); $("sWfGo").textContent = t("sWfConnectTo") + " «" + n.ssid + "»";
+  if (n.secure) $("sWfPw").focus();
+}
+async function sScan(force) {
+  if (!simple || document.hidden || sScanning || (!force && Date.now() - sScanAt < 15000)) return;
+  sScanning = true; sScanAt = Date.now(); if (!sNets.length) sDrawNets();
+  try { const j = await api("/api/wifi/scan");
+    const seen = {}; sNets = (j.networks || []).filter(n => n.ssid && !seen[n.ssid] && (seen[n.ssid] = 1)).sort((a, b) => b.active - a.active || b.signal - a.signal);
+  } catch (e) {}
+  sScanning = false; sDrawNets(); sWifiState();
+}
+setInterval(() => sScan(false), 3000);
+$("sWfEye").onclick = () => { $("sWfPw").type = $("sWfPw").type === "password" ? "text" : "password"; };
+$("sWfGo").onclick = async () => {
+  if (!sPick) return;
+  let j; try { j = await api("/api/wifi/connect", { ssid: sPick, password: $("sWfPw").style.display === "none" ? "" : $("sWfPw").value }); } catch (e) { return; }
+  if (!j.ok) { $("sWfMsg").textContent = "❌ " + t("wf_" + j.reason); return; }
+  $("sWfGo").disabled = true; $("sWfMsg").textContent = "⏳ " + t("wfConnecting");
+  const t0 = Date.now();
+  const poll = async () => {
+    let w = null; try { w = await (await fetch("/api/wifi", { cache: "no-store" })).json(); } catch (e) {}
+    if (w && w.job.state !== "connecting") {
+      $("sWfGo").disabled = false;
+      if (w.job.state === "ok") { $("sWfMsg").textContent = "✓ " + t("sWfAfter"); $("sWfForm").style.display = "none"; sPick = null; $("sWfPw").value = ""; sScan(true); }
+      else $("sWfMsg").textContent = "❌ " + t("wf_" + (w.job.reason || "failed"));
+      return;
+    }
+    if (Date.now() - t0 > 90000) { $("sWfGo").disabled = false; $("sWfMsg").textContent = "✓ " + t("sWfAfter"); return; }   // the phone was cut off: it joined
+    setTimeout(poll, 1500);
+  };
+  setTimeout(poll, 1500);
+};
+// simple mode: own network
+async function sLoadHotspot() {
+  let j; try { j = await api("/api/hotspot"); } catch (e) { return; }
+  $("sHsSsid").value = j.ssid; $("sHsPw").value = j.password;
+  $("sHsSsid").placeholder = t("sHsName"); $("sHsPw").placeholder = t("sHsPass");
+  $("sHsMsg").textContent = (j.custom ? t("hsCustom") + " · " + t("hsDefault").toLowerCase() : t("hsDefault")) + ": " + j.default_ssid + " / " + j.default_password;
+}
+$("sHsSave").onclick = async () => {
+  let j; try { j = await api("/api/hotspot", { ssid: $("sHsSsid").value.trim(), password: $("sHsPw").value }); } catch (e) { return; }
+  if (!j.ok) { $("sHsMsg").textContent = "❌ " + t("wf_" + j.reason); return; }
+  sLoadHotspot(); toast(t("hsSaved") + (j.active ? ": " + t("hsLive") : ""));
+};
+$("sHsReset").onclick = () => ask(t("hsResetQ"), async () => { try { await api("/api/hotspot/reset", {}); } catch (e) {} sLoadHotspot(); toast(t("hsSaved")); });
+// simple mode: one button to update
+const sUpdMsg = m => { $("sUpdMsg").textContent = m; };
+async function sWaitJob(limitMs) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < limitMs) {
+    await new Promise(r => setTimeout(r, 2000));
+    let st = null; try { st = await (await fetch("/api/system/update/status", { cache: "no-store" })).json(); } catch (e) {}
+    if (st && st.message) sUpdMsg("⏳ " + st.message);
+    if (st && ["done", "up_to_date", "rolled_back", "error"].includes(st.state)) return st;
+  }
+  return null;
+}
+$("sUpd").onclick = async () => {
+  $("sUpd").disabled = true; sUpdMsg(t("updAsking"));
+  try {
+    const v = await api("/api/system/version");
+    if (!v.repo) {                                   // installed from an archive: connect updates once
+      sUpdMsg("⏳ " + t("sUpdSetup"));
+      const j = await api("/api/system/update/setup", { url: v.default_repo || "", token: "" });
+      if (!j.ok) { sUpdMsg("❌ " + (j.reason && t("upd_" + j.reason) !== "upd_" + j.reason ? t("upd_" + j.reason) : netError(j))); return; }
+      const st = await sWaitJob(600000);
+      if (!st || st.state === "error") { sUpdMsg("❌ " + (st ? st.message : t("updNoAnswer"))); return; }
+    }
+    const c = await api("/api/system/update/check", {});
+    if (!c.ok) { sUpdMsg("❌ " + netError(c)); return; }
+    if (!c.behind) { sUpdMsg("✓ " + t("updNewest")); return; }
+    sUpdMsg(t("sUpdFound") + " " + c.behind + "\n" + c.changes.slice(0, 5).map(x => "• " + x.subject).join("\n"));
+    ask(t("updQ"), async () => {
+      sUpdMsg(t("updStarting"));
+      try { const j = await api("/api/system/update", { force: false }); if (!j.ok) { sUpdMsg("❌ " + netError(j)); return; } } catch (e) { sUpdMsg("❌ " + e.message); return; }
+      const st = await sWaitJob(240000);
+      if (!st) { sUpdMsg("❌ " + t("updNoAnswer")); return; }
+      sUpdMsg((st.state === "done" || st.state === "up_to_date" ? "✓ " : "❌ ") + st.message);
+      if (st.state === "done") setTimeout(() => location.reload(), 2500);
+    });
+  } catch (e) { sUpdMsg("❌ " + e.message); }
+  finally { $("sUpd").disabled = false; }
 };
 $("sMusic").onclick = () => {
   const on = !(S && S.mode === "music"); touch("mode"); setState({ mode: on ? "music" : "emotion" });
@@ -891,7 +1048,7 @@ async function loadSaved() {
 async function loadHotspot() {
   let j; try { j = await api("/api/hotspot"); } catch (e) { return; }
   $("hsSsid").value = j.ssid; $("hsPw").value = j.password;
-  $("hsState").textContent = (j.custom ? t("hsCustom") : t("hsDefault")) + " · " + t("hsDefault").toLowerCase() + ": " + j.default_ssid + " / " + j.default_password;
+  $("hsState").textContent = (j.custom ? t("hsCustom") + " · " + t("hsDefault").toLowerCase() : t("hsDefault")) + ": " + j.default_ssid + " / " + j.default_password;
 }
 $("hsSave").onclick = async () => {
   let j; try { j = await api("/api/hotspot", { ssid: $("hsSsid").value.trim(), password: $("hsPw").value }); } catch (e) { return; }
