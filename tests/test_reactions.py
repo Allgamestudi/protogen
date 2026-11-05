@@ -224,5 +224,136 @@ class PowerLimitTests(unittest.TestCase):
         self.assertAlmostEqual(g / b, 2.0, delta=0.15)
 
 
+class ClapTests(unittest.TestCase):
+    BANDS = 16
+
+    def flat(self, lv):
+        return np.full(self.BANDS, lv, dtype=np.float32)
+
+    def run_frames(self, d, frames, t0=0.0, sens=0.5):
+        hits, t = [], t0
+        for f in frames:
+            if d.update(t, f, DT, sens):
+                hits.append(round(t, 2))
+            t += DT
+        return hits, t
+
+    def noise(self, mean, sd, n, seed):
+        rng = np.random.default_rng(seed)
+        return [np.clip(mean + sd * rng.standard_normal(self.BANDS), 0, 1) for _ in range(n)]
+
+    def test_clap_in_a_quiet_room(self):
+        d = reactions.ClapDetector()
+        quiet = self.noise(0.03, 0.005, 90, 1)
+        hits, t = self.run_frames(d, quiet)
+        self.assertEqual(hits, [])
+        hits, t = self.run_frames(d, [self.flat(0.35), self.flat(0.2), self.flat(0.06)] + quiet[:30], t)
+        self.assertEqual(len(hits), 1)
+
+    def test_clap_in_a_loud_hall(self):
+        d = reactions.ClapDetector()
+        hall = self.noise(0.30, 0.03, 120, 2)
+        hits, t = self.run_frames(d, hall)
+        self.assertEqual(hits, [], "steady noise is not a clap")
+        hits, _ = self.run_frames(d, [self.flat(0.95), self.flat(0.6)] + hall[:20], t)
+        self.assertEqual(len(hits), 1)
+
+    def test_a_voice_after_a_pause_is_not_a_clap(self):
+        d = reactions.ClapDetector()
+        i = np.arange(self.BANDS)
+        voice = (0.4 * np.exp(-((i - 5.0) / 2.2) ** 2)).astype(np.float32)   # middle bands only
+        frames = self.noise(0.02, 0.003, 90, 3) + [voice] * 8 + self.noise(0.02, 0.003, 30, 4) + [voice * 1.5] * 8
+        hits, _ = self.run_frames(d, frames)
+        self.assertEqual(hits, [])
+
+    def test_music_getting_louder_slowly_is_not_a_clap(self):
+        d = reactions.ClapDetector()
+        hits, _ = self.run_frames(d, [self.flat(v) for v in np.linspace(0.05, 0.6, 300)])
+        self.assertEqual(hits, [])
+
+    def test_one_reaction_per_clap_and_sensitivity(self):
+        d = reactions.ClapDetector()
+        hits, t = self.run_frames(d, [self.flat(0.03)] * 60 + [self.flat(0.4)] * 4 + [self.flat(0.03)] * 30)
+        self.assertEqual(len(hits), 1)
+        soft = [self.flat(0.03)] * 60 + [self.flat(0.085)] + [self.flat(0.03)] * 30
+        self.assertEqual(self.run_frames(reactions.ClapDetector(), soft, sens=0.0)[0], [])
+        self.assertEqual(len(self.run_frames(reactions.ClapDetector(), soft, sens=1.0)[0]), 1)
+
+
+class ToFCalibratorTests(unittest.TestCase):
+    def feed(self, c, readings, t0=0.0, step=0.08):
+        t = t0
+        for mm in readings:
+            c.update(t, mm, mm is not None)
+            t += step
+        return t
+
+    def test_finds_the_visor_reflection_by_itself(self):
+        c = reactions.ToFCalibrator()
+        self.feed(c, [42, 44, 43, 41, 43] * 60)                   # 24 s of a reading that never changes
+        self.assertEqual(c.phantom, 43)
+        self.assertEqual(c.min_valid(50), 53)
+
+    def test_a_moving_person_is_not_a_reflection(self):
+        c = reactions.ToFCalibrator()
+        self.feed(c, [300 + (i * 37) % 200 for i in range(300)])
+        self.assertIsNone(c.phantom)
+        self.assertEqual(c.min_valid(50), 50)
+
+    def test_calibrate_now(self):
+        c = reactions.ToFCalibrator()
+        c.calibrate(0.0)
+        self.assertTrue(c.calibrating)
+        self.feed(c, [38, 39, 38, 40] * 20, step=0.08)            # 6.4 s
+        self.assertFalse(c.calibrating)
+        self.assertEqual(c.phantom, 38)
+        c.calibrate(100.0)
+        self.feed(c, [None] * 70, t0=100.0)                         # nothing in range: no reflection
+        self.assertIsNone(c.phantom)
+
+    def test_reflection_that_went_away(self):
+        c = reactions.ToFCalibrator()
+        t = self.feed(c, [60] * 300)
+        self.assertEqual(c.phantom, 60)
+        self.feed(c, [400 + (i % 7) for i in range(300)], t0=t)
+        self.assertIsNone(c.phantom)
+
+
+class BoopSensorTests(unittest.TestCase):
+    def test_finger_at_the_nose(self):
+        b = reactions.BoopSensor()
+        self.assertFalse(b.update(0.0, 200, True))
+        self.assertFalse(b.update(0.1, 45, True))
+        self.assertTrue(b.update(0.2, 25, True))
+
+    def test_sensor_blinded_by_the_finger(self):
+        b = reactions.BoopSensor()
+        b.update(0.0, 50, True)                       # coming close...
+        self.assertTrue(b.update(0.1, None, False))   # ...then too close to measure
+        self.assertTrue(b.update(3.0, None, False))
+        self.assertFalse(b.update(7.0, None, False))  # blind for too long: not a finger any more
+        self.assertFalse(b.update(7.1, 300, True))
+
+    def test_out_of_range_far_away_is_not_a_boop(self):
+        b = reactions.BoopSensor()
+        b.update(0.0, 900, True)
+        self.assertFalse(b.update(0.1, None, False))
+
+    def test_visor_reflection_is_not_a_finger(self):
+        b = reactions.BoopSensor()
+        self.assertFalse(b.update(0.0, 28, True, boop_mm=30, phantom=27))
+        self.assertTrue(b.update(0.1, 15, True, boop_mm=30, phantom=27))
+
+    def test_boop_and_pet_through_gestures(self):
+        g = reactions.Gestures()
+        b = reactions.BoopSensor()
+        t, events = 0.0, []
+        for mm, ok in [(200, True), (40, True), (None, False), (None, False), (200, True)]:
+            _, ev = g.update(t, near=b.update(t, mm, ok))
+            events.append(ev)
+            t += 0.1
+        self.assertIn("boop", events)
+
+
 if __name__ == "__main__":
     unittest.main()

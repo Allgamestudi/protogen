@@ -3,6 +3,7 @@
 Fed once per frame by the renderer. No hardware or shared state here, so
 they're easy to test (tests/test_reactions.py).
 """
+from collections import deque
 import math
 import random
 
@@ -161,7 +162,7 @@ class Gestures:
     SWINGS = 3              # this many swings there and back...
     WINDOW_S = 1.4          # ...within this time
     PET_AFTER_S = 0.9
-    BOOP_MAX_S = 0.45
+    BOOP_MAX_S = 0.6
     KNOCK_GAP_S = 0.9
 
     def __init__(self):
@@ -285,3 +286,149 @@ class Asymmetry:
             k = edge * edge * (3.0 - 2.0 * edge)
             one, other = (0.45 * k, -0.5 * k), (0.0, 1.3 * k)
         return (one, other) if self.side == 0 else (other, one)
+
+
+# sharp sounds
+class ClapDetector:
+    """A clap, a bang, a knock on the table: a short sound in every band at once.
+
+    Calibrates itself all the time: it keeps the average level of every band
+    and the spread of the total over the last couple of seconds, so the same
+    clap is caught in a quiet room and in a noisy hall, while steady music or
+    a crowd does not set it off. A clap is broadband: most bands jump at once.
+    A voice starting after a pause lifts only a few middle bands and does not
+    count. The raw bands are used, before the automatic volume, which would
+    flatten exactly these short peaks.
+    """
+
+    AVG_S = 1.5            # the averages follow the room this fast
+    REFRACTORY_S = 0.8     # one clap, one reaction
+
+    def __init__(self):
+        self.avg = None
+        self.band_avg = None
+        self.var = 0.0
+        self.last = -10.0
+
+    def reset(self):
+        self.avg = None
+        self.band_avg = None
+        self.var = 0.0
+
+    def update(self, now, bars, dt, sensitivity=0.5):
+        """bars: raw band levels 0..1 this frame; sensitivity 0..1. -> True on a clap."""
+        b = np.asarray(bars, dtype=np.float32).ravel()
+        if b.size == 0:
+            return False
+        level = float(b.mean())
+        sensitivity = min(1.0, max(0.0, float(sensitivity)))
+        if self.avg is None or self.band_avg is None or self.band_avg.shape != b.shape:
+            self.avg, self.band_avg = level, b.copy()
+            return False
+        ratio = 3.0 - 1.6 * sensitivity                  # 3x the average .. 1.4x
+        sigmas = 6.0 - 3.0 * sensitivity
+        jump = level - self.avg
+        broad = float(np.mean(b > self.band_avg * ratio + 0.01))    # share of bands that jumped
+        hit = (level > self.avg * ratio
+               and jump > max(0.05 * (1.2 - sensitivity), sigmas * math.sqrt(self.var))
+               and broad >= 0.75 - 0.25 * sensitivity
+               and now - self.last > self.REFRACTORY_S)
+        if hit:
+            self.last = now
+        elif now - self.last > 0.25:                     # the clap itself does not raise the average
+            a = min(1.0, max(dt, 1e-3) / self.AVG_S)
+            self.avg += jump * a
+            self.var += (jump * jump - self.var) * a
+            self.band_avg += (b - self.band_avg) * a
+        return hit
+
+
+# distance sensor behind the visor
+class ToFCalibrator:
+    """Finds the visor's own reflection and leaves it out.
+
+    A distance sensor behind a visor often sees the visor itself: a reading
+    that stays the same, 30-70 mm, whoever is in front. When the readings stay
+    put within a few millimetres for STEADY_S, that is this reflection, and
+    everything up to just past it is ignored. calibrate() measures it on
+    demand (nothing in front of the visor for a few seconds).
+    """
+
+    STEADY_S = 20.0
+    MANUAL_S = 5.0
+    SPREAD_MM = 6
+    MAX_PHANTOM_MM = 80
+    MARGIN_MM = 10
+
+    def __init__(self):
+        self.samples = deque()
+        self.phantom = None
+        self.manual_until = None
+        self.manual = []
+
+    def calibrate(self, now):
+        self.manual_until = now + self.MANUAL_S
+        self.manual = []
+
+    @property
+    def calibrating(self):
+        return self.manual_until is not None
+
+    def update(self, now, mm, valid):
+        if self.manual_until is not None:
+            if valid and mm is not None:
+                self.manual.append(mm)
+            if now >= self.manual_until:
+                close = [m for m in self.manual if m <= self.MAX_PHANTOM_MM]
+                # most readings at one short distance = the visor; nothing near = no reflection
+                self.phantom = int(np.median(close)) if len(close) >= max(5, len(self.manual) // 2) else None
+                self.manual_until = None
+                self.samples.clear()
+            return
+        if not valid or mm is None:
+            return
+        self.samples.append((now, mm))
+        while self.samples and now - self.samples[0][0] > self.STEADY_S:
+            self.samples.popleft()
+        if len(self.samples) < 30 or now - self.samples[0][0] < self.STEADY_S * 0.9:
+            return
+        vals = [m for _, m in self.samples]
+        if max(vals) - min(vals) <= self.SPREAD_MM and float(np.median(vals)) <= self.MAX_PHANTOM_MM:
+            self.phantom = int(np.median(vals))
+        elif self.phantom is not None and min(vals) > self.phantom + 30:
+            self.phantom = None              # the reflection is gone (or it was a person standing still)
+
+    def min_valid(self, fallback):
+        """Readings nearer than this are not a person."""
+        return self.phantom + self.MARGIN_MM if self.phantom is not None else fallback
+
+
+class BoopSensor:
+    """Something right at the nose (a finger), up to boop_mm from the sensor.
+
+    Very close the sensor stops measuring (the ESP drops readings under 30 mm),
+    so "a near reading, then no reading at all" also counts as touching, for
+    as long as the sensor stays blind (up to BLIND_MAX_S).
+    """
+
+    BLIND_AFTER_S = 0.6     # the last near reading was this recent
+    BLIND_MAX_S = 6.0
+    APPROACH_MM = 30        # "near" for the blind rule: within boop_mm + this
+
+    def __init__(self):
+        self.last_near = -10.0
+        self.blind_since = None
+
+    def update(self, now, mm, valid, boop_mm=30, phantom=None):
+        """-> True while something touches the nose."""
+        reading_near = valid and mm is not None and (phantom is None or abs(mm - phantom) > 4)
+        if valid and mm is not None:
+            self.blind_since = None
+            if reading_near and mm <= boop_mm + self.APPROACH_MM:
+                self.last_near = now
+            return reading_near and mm <= boop_mm
+        if self.blind_since is None:
+            if now - self.last_near > self.BLIND_AFTER_S:
+                return False
+            self.blind_since = now
+        return now - self.blind_since < self.BLIND_MAX_S

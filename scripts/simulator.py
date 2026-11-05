@@ -94,7 +94,7 @@ def sound_bars(kind, t, level, bands):
     return np.clip(bars, 0.0, 1.0).astype(np.float32)
 
 
-GESTURES = ("nod", "shake", "pet", "boop", "knock")
+GESTURES = ("nod", "shake", "pet", "boop", "knock", "clap")
 
 
 # the firmware, without hardware
@@ -185,6 +185,8 @@ class Simulator:
         with self.shared.lock:
             self.shared.target_bars[:] = sound_bars(
                 self.sound, self.clock.monotonic(), self.level, self.config.BANDS)
+            if time.perf_counter() - self.clap_at < 0.08:          # a clap: every band at once, very short
+                self.shared.target_bars[:] = np.maximum(self.shared.target_bars, 0.9)
             self.shared.state["connected"] = self.link
         self._last_swap = time.perf_counter()
         return canvas
@@ -205,8 +207,14 @@ class Simulator:
         with self.shared.lock:
             return self.shared.state.get(key, default)
 
+    clap_at = -10.0
+
     def gesture(self, kind):
         """Play the sensor readings of a gesture into the firmware (about 2 s)."""
+        if kind == "clap":
+            self.clap_at = time.perf_counter()
+            return
+
         def run():
             ms = lambda: int(self.clock.time() * 1000)
             t0 = time.perf_counter()
@@ -218,7 +226,7 @@ class Simulator:
                     values["gyro_dps"] = [rate, 0, 0] if kind == "nod" else [0, 0, rate]
                 elif kind in ("pet", "boop"):
                     near = t < (2.2 if kind == "pet" else 0.25)
-                    values.update(distance_mm=70 if near else 900, distance_valid=True,
+                    values.update(distance_mm=20 if near else 900, distance_valid=True,
                                   last_distance_ms=ms())
                 elif kind == "knock":
                     values["motion_impact"] = t < 0.05 or 0.45 < t < 0.5
@@ -488,7 +496,7 @@ def window(args):
     r = row()
     ttk.Label(r, text="Жесты").pack(side="left")
     for kind, text in (("nod", "кивок"), ("shake", "мотание"), ("pet", "погладить"),
-                       ("boop", "тык в нос"), ("knock", "два стука")):
+                       ("boop", "тык в нос"), ("knock", "два стука"), ("clap", "хлопок")):
         ttk.Button(r, text=text, command=lambda k=kind: sim.gesture(k)).pack(side="left", padx=2)
     ttk.Button(r, text="😉 ◀", width=5, command=lambda: sim.set(wink_request="left")).pack(side="left", padx=(10, 2))
     ttk.Button(r, text="▶ 😉", width=5, command=lambda: sim.set(wink_request="right")).pack(side="left")

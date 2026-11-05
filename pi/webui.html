@@ -91,6 +91,8 @@ body:not(.simple) #simple{display:none}
 .sbig{display:block;width:100%;padding:16px;font-size:1.25em;font-weight:600;border-radius:16px;border:0;background:var(--card2);color:var(--text);cursor:pointer}
 .sbig.on{background:var(--accent);color:#fff}
 #uiMode{white-space:nowrap}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 2px;font-size:1.08em;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
 .brow{display:flex;align-items:center;gap:8px}.brow input{flex:1}.brow .ic{font-size:1.3em}
 .swatches button{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
 .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -172,6 +174,9 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
     <div class="card"><h2 data-t="sFace"></h2><div class="semos" id="sEmos"></div></div>
     <div class="card"><h2 data-t="sColour"></h2><div class="scols" id="sCols"></div></div>
     <div class="card"><button class="sbig" id="sMusic"></button></div>
+    <div class="card"><h2 data-t="sAbilities"></h2><div id="sFeats"></div>
+      <button class="sbig" id="sCal" style="margin-top:12px" data-t="sCal"></button>
+      <p class="hint" id="sCalMsg" style="text-align:center;margin:8px 0 0"></p></div>
     <p class="hint" data-t="sHint" style="text-align:center"></p>
   </div>
 
@@ -404,6 +409,8 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  earh_off:"The ear lights are off.",earh_solid:"All LEDs in the chosen colour.",earh_rainbow:"A rainbow runs round the ring.",
  earh_spectrum:"The ring shows the sound, like an equaliser.",earh_pulse:"The ring breathes in the chosen colour and flashes on the beat.",
  earh_face:"The same colour as the face.",earh_wheel:"A dot runs round the ring.",
+ sAbilities:"What it can do",sfPupils:"Eyes with pupils",sfPeople:"Notice people",sfBoop:"Boop on the nose",sfClap:"Jump at claps",sfVoice:"Emotions from the voice",sfGestures:"Head gestures",
+ sCal:"🔄 Calibrate everything",sCalRun:"Calibrating: for 5 seconds keep quiet, do not touch the visor and do not stand in front of it…",sCalDone:"Done",sCalVisor:"visor reflection at",sCalNoVisor:"no visor reflection",
  modeSimple:"Simple",modeAdvanced:"Advanced",sFace:"Pick a face",sColour:"Pick a colour",sMusic:"Dance to the music",sMusicStop:"Stop dancing",sRainbow:"Rainbow",sHint:"More settings: the ⚙️ Advanced button at the top.",
  search:"Find a setting…",all:"All settings",simple:"Main only",settingsHint:"Tap the name of a setting to read what it does.",
  resetAll:"Reset all settings",resetAllQ:"Return every setting to its factory value?",default:"Factory value",reset:"reset",on:"on",off:"off",
@@ -426,7 +433,7 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  stACTIVE:"awake",stIDLE:"bored",stSLEEP:"asleep",stPARTY:"party",stERROR:"no sensors",
  errorsTitle:"Recent problems",port:"port",soundRate:"sound frames/s",uptime:"sensor board up",power_load:"power use",gain:"volume ×",
  simSound:"Sound",sndSilence:"Silence",sndSpeech:"Speech",sndMusic:"Music",sndManual:"Constant",simLevel:"Loudness",
- simGestures:"Gestures",gNod:"Nod",gShake:"Shake head",gPet:"Pet",gBoop:"Poke the nose",gKnock:"Two knocks",
+ simGestures:"Gestures",gNod:"Nod",gShake:"Shake head",gPet:"Pet",gBoop:"Poke the nose",gKnock:"Two knocks",gClap:"Clap",
  simTime:"Time",simPause:"Pause",simLink:"Sensors connected",simLinkHint:"off shows the 'no sensors' screen",
  wfNet:"Network",wfSave:"Save for later",wfSaved:"Saved networks",wfAdded:"Saved: the protogen joins it when it is in range",
  wfForgetQ:"Forget this network?",wfNone:"none yet",wf_active:"This is the network in use: connect to another one first",wf_not_found:"There is no such network nearby",
@@ -464,6 +471,8 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  earh_off:"Подсветка ушей выключена.",earh_solid:"Все светодиоды выбранным цветом.",earh_rainbow:"Радуга бежит по кольцу.",
  earh_spectrum:"Кольцо показывает звук, как эквалайзер.",earh_pulse:"Кольцо «дышит» выбранным цветом и вспыхивает на бит.",
  earh_face:"Тот же цвет, что у лица.",earh_wheel:"Точка бежит по кольцу.",
+ sAbilities:"Что умеет протоген",sfPupils:"Глаза со зрачками",sfPeople:"Замечать людей",sfBoop:"Буп в нос",sfClap:"Пугаться хлопков",sfVoice:"Эмоции от голоса",sfGestures:"Жесты головой",
+ sCal:"🔄 Откалибровать всё",sCalRun:"Калибрую: 5 секунд тишина, не трогайте визор и не стойте перед ним…",sCalDone:"Готово",sCalVisor:"отражение визора на",sCalNoVisor:"отражения от визора нет",
  modeSimple:"Простой",modeAdvanced:"Расширенный",sFace:"Выбери лицо",sColour:"Выбери цвет",sMusic:"Танцевать под музыку",sMusicStop:"Хватит танцевать",sRainbow:"Радуга",sHint:"Больше настроек — кнопка ⚙️ Расширенный вверху.",
  search:"Найти настройку…",all:"Все настройки",simple:"Только основные",settingsHint:"Нажмите на название настройки, чтобы прочитать, что она делает.",
  resetAll:"Сбросить все настройки",resetAllQ:"Вернуть все настройки к заводским значениям?",default:"Заводское значение",reset:"сбросить",on:"вкл",off:"выкл",
@@ -486,7 +495,7 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  stACTIVE:"бодрствует",stIDLE:"скучает",stSLEEP:"спит",stPARTY:"вечеринка",stERROR:"нет датчиков",
  errorsTitle:"Недавние проблемы",port:"порт",soundRate:"кадров звука/с",uptime:"плата датчиков работает",power_load:"расход мощности",gain:"громкость ×",
  simSound:"Звук",sndSilence:"Тишина",sndSpeech:"Речь",sndMusic:"Музыка",sndManual:"Постоянный",simLevel:"Громкость",
- simGestures:"Жесты",gNod:"Кивок",gShake:"Мотание головой",gPet:"Погладить",gBoop:"Тык в нос",gKnock:"Два стука",
+ simGestures:"Жесты",gNod:"Кивок",gShake:"Мотание головой",gPet:"Погладить",gBoop:"Тык в нос",gKnock:"Два стука",gClap:"Хлопок",
  simTime:"Время",simPause:"Пауза",simLink:"Датчики на связи",simLinkHint:"выключите, чтобы увидеть экран «нет датчиков»",
  wfNet:"Сеть",wfSave:"Сохранить на потом",wfSaved:"Сохранённые сети",wfAdded:"Сохранено: протоген подключится, когда сеть будет рядом",
  wfForgetQ:"Забыть эту сеть?",wfNone:"пока нет",wf_active:"Это сеть, к которой протоген подключён сейчас: сначала подключите другую",wf_not_found:"Такой сети рядом нет",
@@ -653,6 +662,7 @@ function buildSimple() {
   rb.onclick = () => { touch("effect"); setState({ effect: "rainbow" }); markSimple(Object.assign({}, S, { effect: "rainbow" })); };
   cols.appendChild(rb);
   if (S) markSimple(S);
+  buildFeats();
 }
 function markSimple(s) {
   if (!s) return;
@@ -663,6 +673,36 @@ function markSimple(s) {
   $("sMusic").classList.toggle("on", dancing);
   $("sMusic").textContent = dancing ? "⏹ " + t("sMusicStop") : "🎵 " + t("sMusic");
 }
+const SFEATS = [["eye_style", "👁", "sfPupils"], ["proximity_enabled", "🙋", "sfPeople"], ["boop_enabled", "👉", "sfBoop"], ["clap_enabled", "👏", "sfClap"],
+                ["auto_emotion", "🎭", "sfVoice"], ["gestures_enabled", "🤚", "sfGestures"]];
+function buildFeats() {
+  const box = $("sFeats"); box.innerHTML = "";
+  SFEATS.forEach(([key, icon, name]) => {
+    const r = el("div", "srow"); r.appendChild(el("span", "", icon + " " + t(name)));
+    const sw = el("div", "sw"); sw.dataset.key = key;
+    sw.onclick = () => { setSetting(key, +settings[key] ? 0 : 1); markFeats(); };
+    r.onclick = e => { if (e.target === r || e.target.tagName === "SPAN") sw.onclick(); };
+    r.appendChild(sw); box.appendChild(r);
+  });
+  markFeats();
+}
+function markFeats() { $("sFeats").querySelectorAll(".sw").forEach(sw => sw.classList.toggle("on", !!+settings[sw.dataset.key])); }
+$("sCal").onclick = async () => {
+  let j; try { j = await api("/api/calibrate", {}); } catch (e) { return; }
+  if (!j.ok) return;
+  $("sCal").disabled = true; $("sCalMsg").textContent = "⏳ " + t("sCalRun");
+  const t0 = Date.now();
+  const poll = async () => {
+    let s = null; try { s = await (await fetch("/api/status", { cache: "no-store" })).json(); } catch (e) {}
+    if (s && (!s.calibrating || Date.now() - t0 > 15000) && Date.now() - t0 > 2500) {
+      $("sCal").disabled = false;
+      $("sCalMsg").textContent = "✓ " + t("sCalDone") + (s.esp_tof_ok ? " · " + (s.tof_phantom_mm != null ? t("sCalVisor") + " " + s.tof_phantom_mm + " mm" : t("sCalNoVisor")) : "");
+      return;
+    }
+    setTimeout(poll, 700);
+  };
+  setTimeout(poll, 1000);
+};
 $("sMusic").onclick = () => {
   const on = !(S && S.mode === "music"); touch("mode"); setState({ mode: on ? "music" : "emotion" });
   markSimple(Object.assign({}, S, { mode: on ? "music" : "emotion" }));
@@ -950,7 +990,7 @@ function paintSim() {
   seg($("simNet"), [["online", "netOnline"], ["no_internet", "netNoInternet"], ["no_wifi", "netNoWifi"]], sim.net, id => simSet({ net: id }).then(loadWifi));
   $("simPause").classList.toggle("on", !!sim.paused); $("simLink").classList.toggle("on", !!sim.link);
   const g = $("simGest"); g.innerHTML = "";
-  [["nod", "gNod"], ["shake", "gShake"], ["pet", "gPet"], ["boop", "gBoop"], ["knock", "gKnock"]].forEach(([id, key]) => { const b = el("button", "btn", t(key)); b.onclick = () => simSet({ gesture: id }); g.appendChild(b); });
+  [["nod", "gNod"], ["shake", "gShake"], ["pet", "gPet"], ["boop", "gBoop"], ["knock", "gKnock"], ["clap", "gClap"]].forEach(([id, key]) => { const b = el("button", "btn", t(key)); b.onclick = () => simSet({ gesture: id }); g.appendChild(b); });
 }
 const loadSim = async () => { if (!simulated) return; try { sim = await api("/api/sim"); paintSim(); } catch (e) {} };
 $("simLevel").oninput = debounce(e => { touch("simLevel"); simSet({ level: +e.target.value }); }, 80);
@@ -993,6 +1033,7 @@ function render(s) {
   $("score").textContent = s.dino_score || 0; $("best").textContent = s.dino_high || 0;
   [["mM", "noise_margin", " dB"], ["mG", "db_gain", ""], ["mA", "amp_mult", "×"], ["mS", "smoothing", "%"]].forEach(([id, k, u]) => { if (quiet(id) && s[k] !== undefined) { $(id).value = s[k]; $(id + "V").textContent = s[k] + u; } });
   for (const k in s.settings) if (quiet("s_" + k) && String(settings[k]) !== String(s.settings[k])) { settings[k] = s.settings[k]; refreshSetting(k); }
+  if (simple) markFeats();
   const lines = [s.address || "", (s.port ? t("port") + ": " + s.port : t("espOff")), t("soundRate") + ": " + (s.eq_rate_hz || 0).toFixed(0),
     t("uptime") + ": " + Math.round((s.esp_uptime_s || 0) / 60) + " min", t("gain") + (s.auto_gain_now || "–"),
     s.power_load != null ? t("power_load") + ": " + Math.round(s.power_load * 100) + "%" : ""].filter(Boolean);

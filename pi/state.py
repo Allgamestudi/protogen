@@ -105,6 +105,13 @@ DEFAULT_SETTINGS = {
     "auto_emotion": True,              # bang -> scared, music -> happy, long silence -> sleepy
     "auto_sleepy_after_s": 45.0,
     "gestures_enabled": True,          # nod, head shake, petting, poke, double knock
+    "boop_enabled": True,              # a finger at the nose: quick = sneeze, held = love
+    "boop_mm": 30,                     # "at the nose" = nearer than this (the sensor goes blind there too)
+    "clap_enabled": True,              # a clap or a bang: surprised for a moment
+    "clap_sensitivity": 0.5,           # 0 = only very loud bangs, 1 = any sharp sound
+    "clap_emotion": "surprised",       # "" = only flinch, keep the face
+    "clap_hold_s": 1.5,
+    "proximity_auto_calibrate": True,  # find the visor's own reflection by itself
     "catchlight_double": True,         # two-pixel-wide catchlight
     "catchlight_trail": 0.35,          # 0 = stays put, 1 = follows eye fully (kills the effect)
     # Mouth EQ: small spectrum bars rendered inside the open mouth

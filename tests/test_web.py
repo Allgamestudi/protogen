@@ -186,6 +186,24 @@ class SetValuesTests(unittest.TestCase):
             self.assertIsNotNone(web_app.clean_value(k, v), k)
 
 
+class CalibrateTests(unittest.TestCase):
+    def test_calibrate_everything(self):
+        with patch.object(web_app, "send_command") as send:
+            r = web_app.app.call("POST", "/api/calibrate", json_body={}).get_json()
+        self.assertTrue(r["ok"])
+        send.assert_called_once_with("C")
+        with state.lock:
+            self.assertTrue(state.state.pop("calibrate_request", False))
+
+    def test_new_switches_are_settings(self):
+        for key in ("boop_enabled", "boop_mm", "clap_enabled", "clap_sensitivity", "clap_emotion",
+                    "proximity_auto_calibrate", "eye_style", "proximity_enabled", "auto_emotion", "gestures_enabled"):
+            self.assertIn(key, state.DEFAULT_SETTINGS)
+        page = (Path(web_app.__file__).parent / "webui.html").read_text(encoding="utf-8")
+        for key in ("eye_style", "boop_enabled", "clap_enabled", "proximity_enabled"):
+            self.assertIn('"' + key + '"', page)
+
+
 class MiniFlaskTests(unittest.TestCase):
     def test_multipart_upload(self):
         app = miniflask.Flask()

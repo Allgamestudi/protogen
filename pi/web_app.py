@@ -267,6 +267,18 @@ def api_wifi_forget():
     return jsonify(wifi.forget(d.get("ssid") or ""))
 
 
+@app.route("/api/calibrate", methods=["POST"])
+def api_calibrate():
+    """Calibrate everything: microphone noise floor (ESP), automatic volume, distance sensor."""
+    try:
+        send_command("C")
+    except Exception as e:
+        log_err(f"calibrate: {e}")
+    with lock:
+        state["calibrate_request"] = True
+    return jsonify({"ok": True, "seconds": 5})
+
+
 @app.route("/api/hotspot")
 def api_hotspot():
     return jsonify(hotspot.public())

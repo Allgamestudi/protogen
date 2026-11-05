@@ -485,6 +485,10 @@ def _render_loop():
     visemes = reactions.Visemes()
     auto_emotion = reactions.AutoEmotion()
     gestures = reactions.Gestures()
+    clap = reactions.ClapDetector()
+    clap_until = 0.0
+    tofcal = reactions.ToFCalibrator()
+    boop_sensor = reactions.BoopSensor()
     asym = reactions.Asymmetry()
     env_glitch = animations.Envelope(decay=7.0)
     env_rgbsplit = animations.Envelope(decay=9.0)
@@ -615,6 +619,13 @@ def _render_loop():
             dist_valid = state.get("distance_valid", False)
             last_dist_ms = state.get("last_distance_ms", 0)
         raw_rms = float(bars_now.mean())
+        raw_bars = bars_now.copy()                      # before the automatic volume (claps)
+        with lock:
+            calibrate_now = state.pop("calibrate_request", None)
+        if calibrate_now:                              # "calibrate everything" from the page
+            agc = reactions.AutoGain(bands)
+            clap.reset()
+            tofcal.calibrate(now)
         if cfg.get("auto_gain", True):
             bars_now = agc.process(bars_now, dt, min_peak=cfg.get("auto_gain_min_peak", 0.06))
         feat = feat_ex.update(bars_now, now, beat_threshold=cfg.get("beat_threshold", 1.5))
@@ -628,6 +639,22 @@ def _render_loop():
         # a constant "phantom" reading at ~20-50 mm. Treat anything closer than
         # this minimum as invalid noise.
         prox_min_mm = cfg.get("proximity_min_valid_mm", 50)
+        dist_fresh = bool(last_dist_ms) and (int(time.time() * 1000) - last_dist_ms) <= 1500
+        auto_cal = bool(cfg.get("proximity_auto_calibrate", True))
+        if auto_cal or tofcal.calibrating:
+            tofcal.update(now, raw_dist if dist_valid else None, dist_valid and dist_fresh)
+        if auto_cal:
+            prox_min_mm = tofcal.min_valid(prox_min_mm)    # past the visor's own reflection
+        boop_on = bool(cfg.get("boop_enabled", True))
+        boop_mm = cfg.get("boop_mm", 30)
+        touching = boop_on and boop_sensor.update(now, raw_dist if dist_valid else None,
+                                                  dist_valid and dist_fresh, boop_mm, tofcal.phantom)
+        if boop_on:
+            prox_min_mm = max(prox_min_mm, boop_mm)          # a finger at the nose is a boop, not a person
+        with lock:
+            state["tof_phantom_mm"] = tofcal.phantom
+            state["calibrating"] = tofcal.calibrating
+            state["touching"] = touching
         if proximity_enabled and dist_valid and raw_dist is not None \
                 and prox_min_mm < raw_dist < 4000:
             # consider stale > 1.5 s as unknown
@@ -846,10 +873,12 @@ def _render_loop():
                     if impact_now and not cfg.get("imu_ouch_enabled", True):
                         state["motion_impact"] = False      # nobody else will take the flag
                     wink_request = state.pop("wink_request", None)
-                if cfg.get("gestures_enabled", True):
+                gest_on = bool(cfg.get("gestures_enabled", True))
+                if gest_on or boop_on:
+                    # boop / pet: a finger at the nose, even with the person reactions on
                     reaction_emotion, gesture = gestures.update(
-                        now, gyro=gyro_now, near=(proximity_enabled and prox_zone == "near"),
-                        impact=impact_now)
+                        now, gyro=gyro_now if gest_on else None, near=touching,
+                        impact=impact_now if gest_on else False)
                     if gesture == "boop":
                         behavior.vignette = animations.Sneeze()
                     elif gesture == "pet":
@@ -859,6 +888,19 @@ def _render_loop():
                     if gesture:
                         with lock:
                             state["last_gesture"] = gesture
+                # a clap or a bang: surprised for a moment, wakes up a sleeping face
+                if cfg.get("clap_enabled", True) and clap.update(now, raw_bars, dt, cfg.get("clap_sensitivity", 0.5)):
+                    blinker.trigger_startled()
+                    env_shake.trigger(0.7)
+                    env_flash.trigger(0.6)
+                    if behavior.state == "SLEEP":
+                        behavior.state = "ACTIVE"
+                        behavior.vignette = None
+                    clap_until = now + cfg.get("clap_hold_s", 1.5)
+                    with lock:
+                        state["last_gesture"] = "clap"
+                if now < clap_until and cfg.get("clap_emotion", "surprised"):
+                    reaction_emotion = cfg.get("clap_emotion", "surprised")
                 if reaction_emotion is None and cfg.get("auto_emotion", True) and bstate != "SLEEP":
                     reaction_emotion = auto_emotion.update(
                         feat, now, user_emotion, raw_rms=raw_rms,
