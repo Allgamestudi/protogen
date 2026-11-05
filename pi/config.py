@@ -38,6 +38,7 @@ KATANA_EMOTION = ""              # the face it switches to; "" = the first emoti
 HOTSPOT = True                   # no known network after a minute: open our own one
 HOTSPOT_SSID = "Protogen"
 HOTSPOT_PASSWORD = "protogen"    # 8 characters or more
+SHOW_IP_S   = 30                 # after joining a network the face shows its address this long; 0 = off
 HOSTNAME    = "proto"            # the device is kept at http://<this>.local; "" = leave the system alone
 UPLOAD_DIR  = "/tmp/led_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)

@@ -9,6 +9,7 @@ With nobody on it for RETRY_S, the hotspot goes down for LOOK_S so that
 NetworkManager can join a known network that has come into range, and comes back if
 none has. Joining a network from the page switches the hotspot off by itself.
 """
+import json
 import os
 import subprocess
 import threading
@@ -16,7 +17,7 @@ import time
 
 import config
 import wifi
-from state import log_err, stop_event
+from state import SAVES_DIR, log_err, stop_event
 
 CON = wifi.AP_CON
 ADDRESS = "10.42.0.1"
@@ -26,8 +27,85 @@ RETRY_S = 300
 LOOK_S = 45
 
 
+CONF_FILE = os.path.join(SAVES_DIR, "hotspot.json")    # name and password set on the page
+
+
+def defaults():
+    return {"ssid": getattr(config, "HOTSPOT_SSID", "Protogen"),
+            "password": getattr(config, "HOTSPOT_PASSWORD", "protogen")}
+
+
+def check(name, password):
+    """-> "" when the pair can be our network's, else the reason (the page translates it)."""
+    reason = wifi.check_input(name, password)
+    if reason:
+        return reason
+    if not 8 <= len(password) <= 63:                    # our own network always has a password
+        return "bad_password"
+    return ""
+
+
+def settings():
+    """The name and password of our network: the page's, else the defaults from config.py."""
+    out = defaults()
+    try:
+        with open(CONF_FILE, encoding="utf-8") as f:
+            saved = json.load(f)
+        if isinstance(saved, dict) and not check(saved.get("ssid"), saved.get("password")):
+            out = {"ssid": saved["ssid"], "password": saved["password"]}
+    except (OSError, ValueError):
+        pass
+    return out
+
+
 def ssid():
-    return getattr(config, "HOTSPOT_SSID", "Protogen")
+    return settings()["ssid"]
+
+
+def public():
+    """What the page shows."""
+    s, d = settings(), defaults()
+    return {"ssid": s["ssid"], "password": s["password"], "default_ssid": d["ssid"],
+            "default_password": d["password"], "custom": s != d, "active": active()}
+
+
+def _apply():
+    """Restart our network with the new name and password if it is up now."""
+    if active():
+        threading.Thread(target=lambda: (down(), up()), daemon=True, name="hotspot-restart").start()
+
+
+def save(name, password):
+    name = name.strip() if isinstance(name, str) else name
+    reason = check(name, password)
+    if reason:
+        return {"ok": False, "reason": reason}
+    data = {"ssid": name, "password": password}
+    try:
+        if data == defaults():
+            if os.path.exists(CONF_FILE):
+                os.remove(CONF_FILE)
+        else:
+            tmp = CONF_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+            os.replace(tmp, CONF_FILE)
+    except OSError as e:
+        log_err(f"hotspot: cannot save: {e}")
+        return {"ok": False, "reason": "failed"}
+    _apply()
+    return {"ok": True, **public()}
+
+
+def reset():
+    try:
+        if os.path.exists(CONF_FILE):
+            os.remove(CONF_FILE)
+    except OSError as e:
+        log_err(f"hotspot: cannot reset: {e}")
+        return {"ok": False, "reason": "failed"}
+    _apply()
+    return {"ok": True, **public()}
 
 
 def iface():
@@ -64,7 +142,7 @@ def up():
     ok, _ = _run("nmcli", "connection", "add", "type", "wifi", "ifname", iface(), "con-name", CON,
                  "autoconnect", "no", "ssid", ssid(), "802-11-wireless.mode", "ap", "802-11-wireless.band", "bg",
                  "ipv4.method", "shared", "ipv4.addresses", f"{ADDRESS}/24",
-                 "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", getattr(config, "HOTSPOT_PASSWORD", "protogen"))
+                 "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", settings()["password"])
     if ok:
         ok, _ = _run("nmcli", "connection", "up", "id", CON, timeout=40)
     if not ok:
@@ -112,7 +190,37 @@ class Keeper:
         return None
 
 
+def foreign_aps():
+    """Hotspot profiles that are not ours (made by hand or by the OS image).
+
+    NetworkManager brings such a profile up by itself, under its own name and
+    password, and the page then thinks the Pi is on an ordinary Wi-Fi network.
+    """
+    ok, out = _run("nmcli", "-t", "-f", "NAME,TYPE", "connection", "show")
+    if not ok:
+        return []
+    found = []
+    for line in out.splitlines():
+        f = wifi.split_terse(line)
+        if len(f) < 2 or f[0] == CON or f[1] not in ("802-11-wireless", "wifi"):
+            continue
+        ok, mode = _run("nmcli", "-g", "802-11-wireless.mode", "connection", "show", "id", f[0])
+        if ok and mode.strip() == "ap":
+            found.append(f[0])
+    return found
+
+
+def remove_foreign_aps():
+    for name in foreign_aps():
+        ok, _ = _run("nmcli", "connection", "delete", "id", name)
+        log_err(f"hotspot: {'removed' if ok else 'could not remove'} a foreign hotspot profile '{name}'")
+
+
 def _loop():
+    try:
+        remove_foreign_aps()                         # our network is the only one the Pi shares
+    except Exception as e:
+        log_err(f"hotspot: {e}")
     keeper = Keeper()
     while not stop_event.wait(5):
         try:

@@ -139,6 +139,53 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(self.call("GET", "/api/set").status, 405)
 
 
+class SetValuesTests(unittest.TestCase):
+    """/api/set keeps the renderer's values usable: a wrong type must never stop the face."""
+
+    def call(self, body):
+        return web_app.app.call("POST", "/api/set", json_body=body).get_json()
+
+    def setUp(self):
+        with state.lock:
+            self.saved = {k: state.state[k] for k in web_app.WRITABLE if k in state.state}
+
+    def tearDown(self):
+        with state.lock:
+            state.state.update(self.saved)
+            state.state.pop("wink_request", None)
+
+    def test_wrong_types_are_refused_and_state_is_kept(self):
+        with state.lock:
+            before = (state.state["brightness"], list(state.state["color"]))
+        r = self.call({"brightness": "abc", "color": 5, "gradient_colors": "red", "mirror": "yes",
+                       "emotion": 12, "nonsense": 1})
+        self.assertEqual(set(r["rejected"]), {"brightness", "color", "gradient_colors", "mirror", "emotion", "nonsense"})
+        with state.lock:
+            self.assertEqual((state.state["brightness"], list(state.state["color"])), before)
+
+    def test_good_values_pass_and_are_clamped(self):
+        r = self.call({"brightness": 250, "color": [300, -5, 10.6], "gradient_angle": 400, "mirror": True,
+                       "text_content": "x" * 500, "wink_request": "left"})
+        self.assertEqual(r, {"ok": True})
+        with state.lock:
+            self.assertEqual(state.state["brightness"], 100)
+            self.assertEqual(state.state["color"], [255, 0, 10])
+            self.assertEqual(state.state["gradient_angle"], 40)
+            self.assertEqual(len(state.state["text_content"]), 200)
+            self.assertEqual(state.state["wink_request"], "left")
+
+    def test_not_a_json_object(self):
+        r = web_app.app.call("POST", "/api/set", json_body=[1, 2, 3]).get_json()
+        self.assertTrue(r["ok"])
+
+    def test_both_pages_send_what_is_accepted(self):
+        ok = {"mode": "eq", "effect": "solid", "emotion": "happy", "color": [1, 2, 3], "text_color": [0, 220, 70],
+              "gradient_colors": [[255, 0, 0], [0, 0, 255]], "gradient_angle": 90, "brightness": 5,
+              "rotate_180": False, "party": True, "text_content": "", "wink_request": "right"}
+        for k, v in ok.items():
+            self.assertIsNotNone(web_app.clean_value(k, v), k)
+
+
 class MiniFlaskTests(unittest.TestCase):
     def test_multipart_upload(self):
         app = miniflask.Flask()

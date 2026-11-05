@@ -37,6 +37,7 @@ from state import (
     target_bars, uploaded_image, uploaded_gif_frames,
 )
 import colormusic
+import ip_banner
 
 # Emotion pairs that use a glitch-cut transition instead of a plain morph
 CONTRAST_PAIRS = {
@@ -364,6 +365,28 @@ def _render_text(text, offset_x, color, full_w, scale=1, effect="solid", t=0.0):
             column_colors[px] = (int(r * 255), int(g * 255), int(b * 255))
         frame[ys, xs] = column_colors[xs]
 
+    return frame
+
+
+def _draw_ip(frame, text, t):
+    """The Pi's address over the face, on a dark band across the middle.
+
+    It sits still when it fits the frame, otherwise it scrolls. Drawn on the full
+    (chained) frame, so it reads left to right across both panels.
+    """
+    frame = frame if frame.flags.writeable else frame.copy()
+    h, w = frame.shape[:2]
+    ch = boot_animation.CHAR_H
+    tw = boot_animation.text_width(text)
+    y = max(0, (h - ch) // 2)
+    frame[max(0, y - 2):min(h, y + ch + 1)] //= 6          # dim the face behind the text
+    if tw <= w - 2:
+        x = (w - tw) // 2
+        boot_animation.draw_text(frame, x, y, text, (255, 255, 255))
+    else:
+        loop = tw + 16
+        x = w - int(t * 20) % (loop + w)
+        boot_animation.draw_text(frame, x, y, text, (255, 255, 255))
     return frame
 
 
@@ -1414,6 +1437,9 @@ def _render_loop():
                 frame = np.concatenate([frame, frame_b[:, ::-1, :]], axis=1)
             else:
                 frame = _compose_dual(frame)
+        ip_text = ip_banner.text(now)
+        if ip_text:                                    # just joined a network: show where the page is
+            frame = _draw_ip(frame, ip_text, now)
         frame, power_load = _limit_power(frame, matrix.brightness, cfg.get("power_limit", 0.25))
         if frame_no % 15 == 0:
             with lock:

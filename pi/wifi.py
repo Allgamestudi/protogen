@@ -108,8 +108,8 @@ def status(check_internet=True):
     ok, out, _ = _nmcli("-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device")
     link, ssid = parse_devices(out) if ok else ("unknown", None)
     if link == "wifi" and ssid == AP_CON:              # we are the network: nobody to reach the internet through
-        import config
-        return {"available": True, "link": "hotspot", "ssid": getattr(config, "HOTSPOT_SSID", "Protogen"),
+        import hotspot                                 # not at the top: hotspot imports this module
+        return {"available": True, "link": "hotspot", "ssid": hotspot.ssid(),
                 "internet": False, "state": "no_wifi", "job": job}
     if link == "none":
         return {"available": True, "link": link, "ssid": None, "internet": False,

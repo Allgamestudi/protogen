@@ -254,6 +254,17 @@ pre.log{white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:
       <div id="wfSavedList" class="hint"></div>
       <p class="hint" data-t="wfHint"></p>
     </div>
+    <div class="card" id="cardHotspot">
+      <h2 data-t="hsTitle"></h2>
+      <p class="hint" data-t="hsHint"></p>
+      <div class="row"><span class="lab" data-t="wfNet"></span><div class="ctl">
+        <input type="text" id="hsSsid" maxlength="32" autocomplete="off" autocapitalize="off"></div></div>
+      <div class="row"><span class="lab" data-t="wfPass"></span><div class="ctl">
+        <input type="text" id="hsPw" maxlength="63" autocomplete="off" autocapitalize="off"></div></div>
+      <div class="btns"><button class="btn pri" id="hsSave" data-t="hsSave"></button>
+        <button class="btn" id="hsReset" data-t="hsReset"></button></div>
+      <p class="hint" id="hsState"></p>
+    </div>
     <div class="search">
       <input type="text" id="find" data-tp="search">
       <button class="chip" id="allBtn"></button>
@@ -398,6 +409,8 @@ en:{offline:"No connection to the protogen. Trying again…",simulator:"simulato
  wfHint:"The protogen needs Wi-Fi with internet only for updates. If you move it to another network, connect your phone to that network too and open this page again.",
  wfOnline:"Connected to",wfHotspot:"The protogen is sharing its own network",wfHotspotHint:"Pick your home Wi-Fi here. Then switch the phone to the same network and open proto.local.",wfCable:"Connected by cable",wfInternetOk:"internet works",wfSearching:"Looking for networks…",wfFound:"networks found",
  wfUnavailable:"Wi-Fi cannot be set up from this page on this device.",
+ hsTitle:"The protogen's own network",hsHint:"The protogen shares this network when no known Wi-Fi is around: connect to it and open proto.local. The katana prop finds the protogen only under the default name and password.",
+ hsSave:"Save",hsReset:"Default",hsResetQ:"Return the default name and password?",hsSaved:"Saved",hsDefault:"Default",hsCustom:"Changed",hsLive:"the network restarts, join it again with the new name and password",
  net_no_wifi:"Connect Wi-Fi",net_no_internet:"No access to the internet",netOnline:"Online",netNoInternet:"No internet",netNoWifi:"No Wi-Fi",simNet:"Network",
  wf_wrong_password:"Wrong password",wf_timeout:"The network did not answer",wf_failed:"Could not connect",
  wf_bad_ssid:"Enter the name of the network",wf_bad_password:"The password must be 8 to 63 characters",wf_busy:"Already connecting, wait",wf_unavailable:"Wi-Fi cannot be set up on this device",wf_bad_input:"Enter the name of the network",
@@ -455,6 +468,8 @@ ru:{offline:"Нет связи с протогеном. Пробую снова�
  wfHint:"Wi-Fi с интернетом нужен протогену только для обновлений. Если переведёте его в другую сеть, подключите к ней и телефон и откройте эту страницу заново.",
  wfOnline:"Подключён к",wfHotspot:"Протоген раздаёт свою сеть",wfHotspotHint:"Выберите здесь домашний Wi-Fi. Потом подключите телефон к той же сети и откройте proto.local.",wfCable:"Подключён кабелем",wfInternetOk:"интернет есть",wfSearching:"Ищу сети…",wfFound:"найдено сетей",
  wfUnavailable:"На этом устройстве Wi-Fi нельзя настроить со страницы.",
+ hsTitle:"Своя сеть протогена",hsHint:"Протоген раздаёт эту сеть, когда рядом нет знакомого Wi-Fi: подключитесь к ней и откройте proto.local. Катана находит протоген только по стандартному имени и паролю.",
+ hsSave:"Сохранить",hsReset:"По умолчанию",hsResetQ:"Вернуть стандартное имя и пароль?",hsSaved:"Сохранено",hsDefault:"Стандартные",hsCustom:"Изменены",hsLive:"сеть перезапустится, подключитесь к ней заново с новым именем и паролем",
  net_no_wifi:"Подключите Wi-Fi",net_no_internet:"Нет доступа к интернету",netOnline:"В сети",netNoInternet:"Нет интернета",netNoWifi:"Нет Wi-Fi",simNet:"Сеть",
  wf_wrong_password:"Неверный пароль",wf_timeout:"Сеть не ответила",wf_failed:"Не удалось подключиться",
  wf_bad_ssid:"Введите название сети",wf_bad_password:"Пароль должен быть от 8 до 63 символов",wf_busy:"Уже подключаюсь, подождите",wf_unavailable:"На этом устройстве Wi-Fi не настраивается",wf_bad_input:"Введите название сети",
@@ -521,7 +536,7 @@ function showTab() {
   buildNav(); window.scrollTo(0, 0);
   if (tab === "ears") loadEars();
   if (tab === "system") loadVersion();
-  if (tab === "settings") { loadWifi(); loadSaved(); }
+  if (tab === "settings") { loadWifi(); loadSaved(); loadHotspot(); }
   if (tab === "sim") loadSim();
 }
 
@@ -759,6 +774,20 @@ async function loadSaved() {
     r.appendChild(b); box.appendChild(r);
   });
 }
+async function loadHotspot() {
+  let j; try { j = await api("/api/hotspot"); } catch (e) { return; }
+  $("hsSsid").value = j.ssid; $("hsPw").value = j.password;
+  $("hsState").textContent = (j.custom ? t("hsCustom") : t("hsDefault")) + " · " + t("hsDefault").toLowerCase() + ": " + j.default_ssid + " / " + j.default_password;
+}
+$("hsSave").onclick = async () => {
+  let j; try { j = await api("/api/hotspot", { ssid: $("hsSsid").value.trim(), password: $("hsPw").value }); } catch (e) { return; }
+  if (!j.ok) { toast(t("wf_" + j.reason)); return; }
+  toast(t("hsSaved") + (j.active ? ": " + t("hsLive") : "")); loadHotspot();
+};
+$("hsReset").onclick = () => ask(t("hsResetQ"), async () => {
+  let j; try { j = await api("/api/hotspot/reset", {}); } catch (e) { return; }
+  toast(j.ok ? t("hsSaved") + (j.active ? ": " + t("hsLive") : "") : t("wf_" + j.reason)); loadHotspot();
+});
 $("wfAdd").onclick = async () => {
   let j; try { j = await api("/api/wifi/add", { ssid: $("wfSsid").value.trim(), password: $("wfPw").value }); } catch (e) { return; }
   toast(j.ok ? t("wfAdded") : t("wf_" + j.reason)); if (j.ok) { $("wfPw").value = ""; loadSaved(); }

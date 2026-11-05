@@ -20,6 +20,7 @@ import ui_schema
 import hostname_guard
 import updater
 import wifi
+import hotspot
 from serial_proto import send_command
 import ears
 import ears_effect
@@ -35,6 +36,47 @@ WRITABLE = {
     "text_content", "text_color",
     "party", "wink_request",
 }
+
+
+def _colour(v):
+    if isinstance(v, (list, tuple)) and len(v) == 3 and all(
+            isinstance(c, (int, float)) and not isinstance(c, bool) for c in v):
+        return [max(0, min(255, int(c))) for c in v]
+    return None
+
+
+def _number(v):
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v else None
+
+
+def clean_value(key, v):
+    """A value for /api/set as the renderer can use it, or None when it is not one.
+
+    The renderer reads these every frame: one wrong type (a string for the
+    brightness, a number for the colour) would stop the face until a restart.
+    """
+    if key in ("mode", "emotion", "effect"):
+        return v if isinstance(v, str) and 0 < len(v) <= 40 else None
+    if key in ("color", "text_color"):
+        return _colour(v)
+    if key == "brightness":
+        n = _number(v)
+        return None if n is None else int(max(1, min(100, n)))
+    if key == "gradient_colors":
+        if isinstance(v, list) and 2 <= len(v) <= 8:
+            cols = [_colour(c) for c in v]
+            return cols if all(cols) else None
+        return None
+    if key == "gradient_angle":
+        n = _number(v)
+        return None if n is None else n % 360
+    if key == "text_content":
+        return v[:200] if isinstance(v, str) else None
+    if key == "wink_request":                       # which eye: "left" / "right" (or 0 / 1)
+        return v if v in ("left", "right", 0, 1, "0", "1") else None
+    if key in ("rotate_180", "mirror", "party"):
+        return v if isinstance(v, bool) else (bool(v) if isinstance(v, (int, float)) else None)
+    return None
 
 
 # The pages are plain files next to this one: webui.html (current) and
@@ -225,6 +267,22 @@ def api_wifi_forget():
     return jsonify(wifi.forget(d.get("ssid") or ""))
 
 
+@app.route("/api/hotspot")
+def api_hotspot():
+    return jsonify(hotspot.public())
+
+
+@app.route("/api/hotspot", methods=["POST"])
+def api_hotspot_set():
+    d = request.get_json(silent=True) or {}
+    return jsonify(hotspot.save(d.get("ssid"), d.get("password") if isinstance(d.get("password"), str) else ""))
+
+
+@app.route("/api/hotspot/reset", methods=["POST"])
+def api_hotspot_reset():
+    return jsonify(hotspot.reset())
+
+
 @app.route("/api/system/update/setup", methods=["POST"])
 def api_system_update_setup():
     if SIMULATED:
@@ -317,7 +375,17 @@ def api_status():
 
 @app.route("/api/set", methods=["POST"])
 def api_set():
-    d = request.get_json(silent=True) or {}
+    d = request.get_json(silent=True)
+    if not isinstance(d, dict):
+        d = {}
+    clean, rejected = {}, []
+    for k, v in d.items():
+        cv = clean_value(k, v) if k in WRITABLE else None
+        if cv is None:
+            rejected.append(k)
+        else:
+            clean[k] = cv
+    d = clean
     with lock:
         # Switching emotion -> recall its remembered color
         # (unless a color is set in the same request).
@@ -331,8 +399,9 @@ def api_set():
         # Setting a color -> remember it for the current emotion.
         if "color" in d:
             state["emotion_colors"][state["emotion"]] = list(state["color"])
-    mark_ui_dirty()
-    return jsonify({"ok": True})
+    if d:
+        mark_ui_dirty()
+    return jsonify({"ok": True, "rejected": rejected} if rejected else {"ok": True})
 
 
 # The katana prop reports its blade here. While the blade is lit the face shows the first
