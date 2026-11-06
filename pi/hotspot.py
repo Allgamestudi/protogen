@@ -216,8 +216,57 @@ def remove_foreign_aps():
         log_err(f"hotspot: {'removed' if ok else 'could not remove'} a foreign hotspot profile '{name}'")
 
 
+FOREIGN_SERVICES = ("hostapd", "raspapd")      # hotspots set up by hand or by RaspAP, outside NetworkManager
+
+
+def _service_on(name):
+    """Running now or set to start with the Pi."""
+    return (_run("systemctl", "is-active", "--quiet", name, timeout=10)[0]
+            or _run("systemctl", "is-enabled", "--quiet", name, timeout=10)[0])
+
+
+def foreign_services():
+    found = [s for s in FOREIGN_SERVICES if _service_on(s)]
+    if found and _service_on("dnsmasq"):       # their DHCP/DNS: holds the ports our network needs
+        found.append("dnsmasq")
+    return found
+
+
+def stop_foreign_services():
+    """Switch off hostapd/RaspAP: they share their own network (e.g. 'proto') and keep wlan0 to themselves."""
+    found = foreign_services()
+    if not found:
+        return []
+    geteuid = getattr(os, "geteuid", None)
+    if geteuid is None or geteuid() != 0:
+        log_err(f"hotspot: {', '.join(found)} running and no rights to stop them")
+        return found
+    for name in found:
+        ok, _ = _run("systemctl", "disable", "--now", name, timeout=60)
+        if name != "dnsmasq":
+            _run("systemctl", "mask", name, timeout=30)      # so it does not come back after an update
+        log_err(f"hotspot: {'switched off' if ok else 'could not switch off'} the service '{name}'")
+    return found
+
+
+def make_managed():
+    """Give wlan0 back to NetworkManager when a hand-made setup took it away."""
+    ok, out = _run("nmcli", "-t", "-f", "DEVICE,STATE", "device")
+    if not ok:
+        return False
+    for line in out.splitlines():
+        f = wifi.split_terse(line)
+        if len(f) >= 2 and f[0] == iface() and f[1] == "unmanaged":
+            ok, _ = _run("nmcli", "device", "set", f[0], "managed", "yes")
+            log_err(f"hotspot: {'gave' if ok else 'could not give'} {f[0]} back to NetworkManager")
+            return ok
+    return False
+
+
 def _loop():
     try:
+        stop_foreign_services()                      # hostapd/RaspAP: other software sharing its own network
+        make_managed()
         remove_foreign_aps()                         # our network is the only one the Pi shares
     except Exception as e:
         log_err(f"hotspot: {e}")

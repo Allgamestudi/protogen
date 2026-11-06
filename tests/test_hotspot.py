@@ -180,5 +180,55 @@ class ForeignHotspotTests(unittest.TestCase):
             self.assertEqual(hotspot.foreign_aps(), [])
 
 
+class ForeignServiceTests(unittest.TestCase):
+    """hostapd/RaspAP sharing their own network outside NetworkManager are switched off."""
+
+    def fake(self, on, managed="disconnected"):
+        calls = []
+
+        def run(*cmd, timeout=30):
+            calls.append(cmd)
+            if cmd[:2] == ("systemctl", "is-active") or cmd[:2] == ("systemctl", "is-enabled"):
+                return cmd[-1] in on, ""
+            if cmd[:4] == ("nmcli", "-t", "-f", "DEVICE,STATE"):
+                return True, "wlan0:" + managed + "\neth0:unavailable\n"
+            return True, ""
+        return run, calls
+
+    def test_hostapd_and_its_dnsmasq_are_switched_off(self):
+        run, calls = self.fake({"hostapd", "dnsmasq"})
+        with patch.object(hotspot, "_run", side_effect=run), patch.object(hotspot, "log_err"), \
+                patch.object(hotspot.os, "geteuid", create=True, return_value=0):
+            self.assertEqual(hotspot.stop_foreign_services(), ["hostapd", "dnsmasq"])
+        self.assertIn(("systemctl", "disable", "--now", "hostapd"), calls)
+        self.assertIn(("systemctl", "mask", "hostapd"), calls)
+        self.assertIn(("systemctl", "disable", "--now", "dnsmasq"), calls)
+        self.assertNotIn(("systemctl", "mask", "dnsmasq"), calls)
+
+    def test_dnsmasq_alone_is_left_alone(self):
+        run, calls = self.fake({"dnsmasq"})
+        with patch.object(hotspot, "_run", side_effect=run), patch.object(hotspot, "log_err"):
+            self.assertEqual(hotspot.stop_foreign_services(), [])
+        self.assertFalse([c for c in calls if "disable" in c])
+
+    def test_nothing_without_root(self):
+        run, calls = self.fake({"raspapd"})
+        with patch.object(hotspot, "_run", side_effect=run), patch.object(hotspot, "log_err"), \
+                patch.object(hotspot.os, "geteuid", create=True, return_value=1000):
+            self.assertEqual(hotspot.stop_foreign_services(), ["raspapd"])
+        self.assertFalse([c for c in calls if "disable" in c])
+
+    def test_wlan0_given_back_to_networkmanager(self):
+        run, calls = self.fake(set(), managed="unmanaged")
+        with patch.object(hotspot, "_run", side_effect=run), patch.object(hotspot, "log_err"):
+            self.assertTrue(hotspot.make_managed())
+        self.assertIn(("nmcli", "device", "set", "wlan0", "managed", "yes"), calls)
+
+    def test_managed_wlan0_is_left_alone(self):
+        run, calls = self.fake(set())
+        with patch.object(hotspot, "_run", side_effect=run):
+            self.assertFalse(hotspot.make_managed())
+        self.assertFalse([c for c in calls if "managed" in c])
+
 if __name__ == "__main__":
     unittest.main()
